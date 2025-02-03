@@ -1,0 +1,51 @@
+[gd_scene load_steps=7 format=1]
+
+[ext_resource path="res://scripts/Path.gd" type="Script" id=1]
+[ext_resource path="res://assets/path/square.png" type="Texture" id=2]
+[ext_resource path="res://assets/path/circle.png" type="Texture" id=3]
+[ext_resource path="res://assets/path/triangle.png" type="Texture" id=4]
+
+[sub_resource type="RectangleShape2D" id=1]
+
+custom_solver_bias = 0.0
+extents = Vector2( 32, 32 )
+
+[sub_resource type="SpriteFrames" id=2]
+
+animations = [ { "frames":[ ExtResource( 2 ) ], "loop":true, "name":"square", "speed":5.0 }, { "frames":[ ExtResource( 3 ) ], "loop":true, "name":"circle", "speed":5.0 }, { "frames":[ ExtResource( 4 ) ], "loop":true, "name":"triangle", "speed":5.0 } ]
+
+[node name="Path" type="Area2D"]
+
+transform/pos = Vector2( 360, -120 )
+transform/scale = Vector2( 3.75, 3.75 )
+input/pickable = false
+shapes/0/shape = SubResource( 1 )
+shapes/0/transform = Matrix32( 1, 0, 0, 0.999321, 0, -0.0237793 )
+shapes/0/trigger = false
+gravity_vec = Vector2( 0, 1 )
+gravity = 98.0
+linear_damp = 0.1
+angular_damp = 1.0
+script/script = ExtResource( 1 )
+__meta__ = { "_edit_group_":true }
+
+[node name="AnimatedSprite" type="AnimatedSprite" parent="."]
+
+transform/pos = Vector2( 0, 3.8147e-06 )
+transform/scale = Vector2( 0.128, 0.128 )
+frames = SubResource( 2 )
+animation = "square"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+
+transform/pos = Vector2( 0, -0.0237793 )
+transform/scale = Vector2( 1, 0.999321 )
+shape = SubResource( 1 )
+trigger = false
+_update_shape_index = 0
+
+[node name="vis_notif" type="VisibilityNotifier2D" parent="."]
+
+rect = Rect2( -10, -10, 20, 20 )
+
+

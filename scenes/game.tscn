@@ -1,0 +1,629 @@
+[gd_scene load_steps=46 format=1]
+
+[ext_resource path="res://scripts/game.gd" type="Script" id=1]
+[ext_resource path="res://assets/8b1c4d90-a747-437c-8b59-5db4e3e0b3c6.png" type="Texture" id=2]
+[ext_resource path="res://assets/7469158a-de70-4cf0-95df-e5795139c957.png" type="Texture" id=3]
+[ext_resource path="res://assets/c99d0f98-f1a4-427c-9ea7-de6233213c2d.png" type="Texture" id=4]
+[ext_resource path="res://assets/1323f9b1-a517-4393-9351-6bc2fb4d1e4e.png" type="Texture" id=5]
+[ext_resource path="res://assets/6b121098-c731-44ea-802e-11f354c0b743.png" type="Texture" id=6]
+[ext_resource path="res://assets/6d9727ca-2cbb-4166-8bec-073eda2d4ffb.png" type="Texture" id=7]
+[ext_resource path="res://assets/fef4cc91-244f-4108-a74d-fea0e0d3267c.png" type="Texture" id=8]
+[ext_resource path="res://assets/af97f236-5ee7-45b8-abbc-44e4daca69b7.png" type="Texture" id=9]
+[ext_resource path="res://scripts/player.gd" type="Script" id=10]
+[ext_resource path="res://assets/player/triangle.png" type="Texture" id=11]
+[ext_resource path="res://assets/player/circle.png" type="Texture" id=12]
+[ext_resource path="res://assets/player/square.png" type="Texture" id=13]
+[ext_resource path="res://scripts/area2D1.gd" type="Script" id=14]
+[ext_resource path="res://assets/lesser-than-sign-icon-36379.png" type="Texture" id=15]
+[ext_resource path="res://assets/left_white.png" type="Texture" id=16]
+[ext_resource path="res://assets/greater-than-sign-icon-36379.png" type="Texture" id=17]
+[ext_resource path="res://assets/right_pressed.png" type="Texture" id=18]
+[ext_resource path="res://assets/tri_path_1.png" type="Texture" id=19]
+[ext_resource path="res://assets/tri_white.png" type="Texture" id=20]
+[ext_resource path="res://assets/medium-black-circle_1.png" type="Texture" id=21]
+[ext_resource path="res://assets/circle_white.png" type="Texture" id=22]
+[ext_resource path="res://assets/94550006-3102-4844-815d-4be7b3ff44cf.png" type="Texture" id=23]
+[ext_resource path="res://fonts/CaviarDreams_Bold.ttf" type="DynamicFontData" id=24]
+[ext_resource path="res://assets/pause-button.png" type="Texture" id=25]
+[ext_resource path="res://scripts/pause.gd" type="Script" id=26]
+[ext_resource path="res://assets/play-button.png" type="Texture" id=27]
+[ext_resource path="res://scripts/play.gd" type="Script" id=28]
+[ext_resource path="res://assets/1516976948665.png" type="Texture" id=29]
+[ext_resource path="res://fonts/gomarice_gogono_cocoa_mochi.ttf" type="DynamicFontData" id=30]
+[ext_resource path="res://assets/refresh.png" type="Texture" id=31]
+[ext_resource path="res://scripts/reload.gd" type="Script" id=32]
+[ext_resource path="res://assets/rate_white.png" type="Texture" id=33]
+[ext_resource path="res://scripts/rate.gd" type="Script" id=34]
+[ext_resource path="res://fonts/Top Secret.ttf" type="DynamicFontData" id=35]
+
+[sub_resource type="SpriteFrames" id=1]
+
+animations = [ { "frames":[ ExtResource( 2 ) ], "loop":true, "name":"light_green", "speed":5.0 }, { "frames":[ ExtResource( 3 ) ], "loop":true, "name":"green", "speed":5.0 }, { "frames":[ ExtResource( 4 ) ], "loop":true, "name":"blue", "speed":5.0 }, { "frames":[ ExtResource( 5 ) ], "loop":true, "name":"yellow", "speed":5.0 }, { "frames":[ ExtResource( 6 ) ], "loop":true, "name":"light_blue", "speed":5.0 }, { "frames":[ ExtResource( 7 ) ], "loop":true, "name":"pink", "speed":5.0 }, { "frames":[ ExtResource( 8 ) ], "loop":true, "name":"saffron", "speed":5.0 }, { "frames":[ ExtResource( 9 ) ], "loop":true, "name":"bottle_green", "speed":5.0 } ]
+
+[sub_resource type="RectangleShape2D" id=2]
+
+custom_solver_bias = 0.0
+extents = Vector2( 28.5517, 88.9245 )
+
+[sub_resource type="SpriteFrames" id=3]
+
+animations = [ { "frames":[ ExtResource( 11 ) ], "loop":true, "name":"triangle", "speed":5.0 }, { "frames":[ ExtResource( 12 ) ], "loop":true, "name":"circle", "speed":5.0 }, { "frames":[ ExtResource( 13 ) ], "loop":true, "name":"square", "speed":5.0 } ]
+
+[sub_resource type="RectangleShape2D" id=4]
+
+custom_solver_bias = 0.0
+extents = Vector2( 32.1102, 10 )
+
+[sub_resource type="DynamicFont" id=5]
+
+font/size = 114
+font/use_mipmaps = false
+font/use_filter = false
+font/font = ExtResource( 24 )
+
+[sub_resource type="DynamicFont" id=6]
+
+font/size = 120
+font/use_mipmaps = false
+font/use_filter = false
+font/font = ExtResource( 30 )
+
+[sub_resource type="DynamicFont" id=7]
+
+font/size = 150
+font/use_mipmaps = false
+font/use_filter = false
+font/font = ExtResource( 30 )
+
+[sub_resource type="DynamicFont" id=8]
+
+font/size = 40
+font/use_mipmaps = false
+font/use_filter = false
+font/font = ExtResource( 30 )
+
+[sub_resource type="DynamicFont" id=9]
+
+font/size = 50
+font/use_mipmaps = false
+font/use_filter = false
+font/font = ExtResource( 35 )
+
+[sub_resource type="Animation" id=10]
+
+resource/name = "new_best"
+length = 1.0
+loop = false
+step = 0.1
+tracks/0/type = "value"
+tracks/0/path = NodePath("new_best:rect/scale")
+tracks/0/interp = 1
+tracks/0/imported = false
+tracks/0/keys = { "times":FloatArray( 0, 1 ), "transitions":FloatArray( 1, 1 ), "update":0, "values":[ Vector2( 3, 3 ), Vector2( 1, 1 ) ] }
+tracks/1/type = "value"
+tracks/1/path = NodePath("new_best:rect/pos")
+tracks/1/interp = 1
+tracks/1/imported = false
+tracks/1/keys = { "times":FloatArray( 0, 1 ), "transitions":FloatArray( 1, 1 ), "update":0, "values":[ Vector2( -63, 549 ), Vector2( 347, 427 ) ] }
+
+[node name="game" type="Node2D"]
+
+visibility/visible = false
+script/script = ExtResource( 1 )
+__meta__ = { "_edit_lock_":true }
+
+[node name="Background1" type="CanvasLayer" parent="."]
+
+editor/display_folded = true
+layer = -1
+offset = Vector2( 0, 0 )
+rotation = 0.0
+scale = Vector2( 1, 1 )
+__meta__ = { "_edit_lock_":true }
+
+[node name="Background" type="AnimatedSprite" parent="Background1"]
+
+transform/scale = Vector2( 1, 0.833333 )
+frames = SubResource( 1 )
+animation = "blue"
+centered = false
+__meta__ = { "_edit_lock_":true }
+
+[node name="player" type="Area2D" parent="."]
+
+editor/display_folded = true
+transform/pos = Vector2( 360, 840 )
+transform/scale = Vector2( 3.75, 3.75 )
+input/pickable = false
+shapes/0/shape = SubResource( 2 )
+shapes/0/transform = Matrix32( 0.686358, 0, 0, 0.216221, 1.00275, 0.324066 )
+shapes/0/trigger = false
+gravity_vec = Vector2( 0, 1 )
+gravity = 98.0
+linear_damp = 0.1
+angular_damp = 1.0
+script/script = ExtResource( 10 )
+__meta__ = { "_edit_group_":true, "_edit_lock_":true }
+
+[node name="AnimatedSprite" type="AnimatedSprite" parent="player"]
+
+transform/pos = Vector2( 3.71253e-06, -5.66244e-06 )
+transform/scale = Vector2( 0.128, 0.128 )
+frames = SubResource( 3 )
+animation = "square"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="player"]
+
+transform/pos = Vector2( 1.00275, 0.324066 )
+transform/scale = Vector2( 0.686358, 0.216221 )
+shape = SubResource( 2 )
+trigger = false
+_update_shape_index = 0
+__meta__ = { "_edit_lock_":true }
+
+[node name="Area2D" type="Area2D" parent="."]
+
+editor/display_folded = true
+transform/pos = Vector2( 360, 480 )
+transform/scale = Vector2( 11.25, 0.098711 )
+input/pickable = true
+shapes/0/shape = SubResource( 4 )
+shapes/0/transform = Matrix32( 1, 0, 0, 1, 0, 0 )
+shapes/0/trigger = false
+gravity_vec = Vector2( 0, 1 )
+gravity = 98.0
+linear_damp = 0.1
+angular_damp = 1.0
+__meta__ = { "_edit_group_":true, "_edit_lock_":true }
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+
+shape = SubResource( 4 )
+trigger = false
+_update_shape_index = 0
+__meta__ = { "_edit_lock_":true }
+
+[node name="Area2D1" type="Area2D" parent="."]
+
+editor/display_folded = true
+transform/pos = Vector2( 360, 963.159 )
+transform/scale = Vector2( 11.25, 0.098711 )
+input/pickable = true
+shapes/0/shape = SubResource( 4 )
+shapes/0/transform = Matrix32( 1, 0, 0, 1, 0, 0 )
+shapes/0/trigger = false
+gravity_vec = Vector2( 0, 1 )
+gravity = 98.0
+linear_damp = 0.1
+angular_damp = 1.0
+script/script = ExtResource( 14 )
+__meta__ = { "_edit_group_":true, "_edit_lock_":true }
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D1"]
+
+shape = SubResource( 4 )
+trigger = false
+_update_shape_index = 0
+
+[node name="Timer" type="Timer" parent="."]
+
+process_mode = 1
+wait_time = 1.0
+one_shot = false
+autostart = true
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+layer = 2
+offset = Vector2( 0, 0 )
+rotation = 0.0
+scale = Vector2( 1, 1 )
+
+[node name="UI" type="Container" parent="CanvasLayer"]
+
+editor/display_folded = true
+visibility/visible = false
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 0.0
+margin/top = 0.0
+margin/right = 40.0
+margin/bottom = 40.0
+
+[node name="left" type="TouchScreenButton" parent="CanvasLayer/UI"]
+
+transform/pos = Vector2( 20, 993.424 )
+transform/scale = Vector2( 0.28, 0.28 )
+normal = ExtResource( 15 )
+pressed = ExtResource( 16 )
+bitmask = null
+passby_press = false
+action = "ui_left"
+visibility_mode = 0
+
+[node name="right" type="TouchScreenButton" parent="CanvasLayer/UI"]
+
+transform/pos = Vector2( 560, 993.424 )
+transform/scale = Vector2( 0.28, 0.28 )
+normal = ExtResource( 17 )
+pressed = ExtResource( 18 )
+bitmask = null
+passby_press = false
+action = "ui_right"
+visibility_mode = 0
+
+[node name="triangle" type="TouchScreenButton" parent="CanvasLayer/UI"]
+
+transform/pos = Vector2( 180.361, 990.238 )
+transform/scale = Vector2( 0.295187, 0.265594 )
+normal = ExtResource( 19 )
+pressed = ExtResource( 20 )
+bitmask = null
+passby_press = false
+action = "ui_up"
+visibility_mode = 0
+
+[node name="circle" type="TouchScreenButton" parent="CanvasLayer/UI"]
+
+transform/pos = Vector2( 381.023, 988.628 )
+transform/scale = Vector2( 0.298176, 0.285948 )
+normal = ExtResource( 21 )
+pressed = ExtResource( 22 )
+bitmask = null
+passby_press = false
+action = "ui_down"
+visibility_mode = 0
+
+[node name="TextureFrame1" type="TextureFrame" parent="CanvasLayer/UI"]
+
+visibility/visible = false
+visibility/opacity = 0.25
+rect/scale = Vector2( 1, 0.84 )
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 0.0
+margin/top = 0.0
+margin/right = 720.0
+margin/bottom = 1440.0
+texture = ExtResource( 23 )
+stretch_mode = 0
+
+[node name="score" type="Label" parent="CanvasLayer/UI"]
+
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 240.0
+margin/top = 50.0
+margin/right = 480.0
+margin/bottom = 290.0
+custom_fonts/font = SubResource( 5 )
+custom_colors/font_color = Color( 0.855469, 0.143692, 0.143692, 1 )
+custom_colors/font_color_shadow = Color( 0.34375, 0.041626, 0.041626, 1 )
+text = "0"
+align = 1
+valign = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="pause" type="TextureButton" parent="CanvasLayer/UI"]
+
+rect/scale = Vector2( 0.25, 0.25 )
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 550.0
+margin/top = 90.0
+margin/right = 1062.0
+margin/bottom = 602.0
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+textures/normal = ExtResource( 25 )
+script/script = ExtResource( 26 )
+
+[node name="play" type="TextureButton" parent="CanvasLayer/UI"]
+
+process/pause_mode = 2
+visibility/visible = false
+rect/scale = Vector2( 0.25, 0.25 )
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 550.0
+margin/top = 90.0
+margin/right = 1062.0
+margin/bottom = 602.0
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+textures/normal = ExtResource( 27 )
+script/script = ExtResource( 28 )
+__meta__ = { "_edit_lock_":true }
+
+[node name="game_over_menu" type="Container" parent="CanvasLayer"]
+
+visibility/visible = false
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 0.0
+margin/top = 0.0
+margin/right = 40.0
+margin/bottom = 40.0
+__meta__ = { "_edit_lock_":true }
+
+[node name="TextureFrame 2" type="TextureFrame" parent="CanvasLayer/game_over_menu"]
+
+visibility/opacity = 0.35
+rect/scale = Vector2( 0.6, 0.6 )
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 50.0
+margin/top = 350.0
+margin/right = 1093.0
+margin/bottom = 1393.0
+texture = ExtResource( 29 )
+stretch_mode = 0
+__meta__ = { "_edit_lock_":true }
+
+[node name="TextureFrame" type="TextureFrame" parent="CanvasLayer/game_over_menu"]
+
+visibility/opacity = 0.18
+rect/scale = Vector2( 1, 0.84 )
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 0.0
+margin/top = 0.0
+margin/right = 720.0
+margin/bottom = 1440.0
+texture = ExtResource( 23 )
+stretch_mode = 0
+__meta__ = { "_edit_lock_":true }
+
+[node name="game_over" type="Label" parent="CanvasLayer/game_over_menu"]
+
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 0.0
+margin/top = 0.0
+margin/right = 720.0
+margin/bottom = 480.0
+custom_fonts/font = SubResource( 6 )
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+custom_colors/font_color_shadow = Color( 0, 0, 0, 1 )
+custom_constants/shadow_as_outline = 5
+text = "Game Over"
+align = 1
+valign = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+__meta__ = { "_edit_lock_":true }
+
+[node name="score" type="Container" parent="CanvasLayer/game_over_menu"]
+
+editor/display_folded = true
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 0.0
+margin/top = 550.0
+margin/right = 0.0
+margin/bottom = 550.0
+
+[node name="score_game_menu" type="Label" parent="CanvasLayer/game_over_menu/score"]
+
+editor/display_folded = true
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 0.0
+margin/top = -120.0
+margin/right = 360.0
+margin/bottom = 120.0
+custom_fonts/font = SubResource( 7 )
+custom_colors/font_color_shadow = Color( 0, 0, 0, 1 )
+custom_constants/shadow_offset_y = 3
+text = "0"
+align = 1
+valign = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+__meta__ = { "_edit_lock_":true }
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="CanvasLayer/game_over_menu/score/score_game_menu"]
+
+playback/process_mode = 1
+playback/default_blend_time = 0.0
+root/root = NodePath("..")
+playback/active = true
+playback/speed = 1.0
+blend_times = [  ]
+autoplay = ""
+
+[node name="score_name" type="Label" parent="CanvasLayer/game_over_menu/score"]
+
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 0.0
+margin/top = 120.0
+margin/right = 360.0
+margin/bottom = 240.0
+custom_fonts/font = SubResource( 8 )
+custom_colors/font_color_shadow = Color( 0, 0, 0, 1 )
+custom_constants/shadow_offset_y = 2
+custom_constants/shadow_as_outline = 0
+text = "Score"
+align = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+__meta__ = { "_edit_lock_":true }
+
+[node name="best" type="Container" parent="CanvasLayer/game_over_menu"]
+
+editor/display_folded = true
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 360.0
+margin/top = 310.0
+margin/right = 405.0
+margin/bottom = 310.0
+
+[node name="best_game_menu" type="Label" parent="CanvasLayer/game_over_menu/best"]
+
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 0.0
+margin/top = 120.0
+margin/right = 360.0
+margin/bottom = 360.0
+custom_fonts/font = SubResource( 7 )
+custom_colors/font_color_shadow = Color( 0, 0, 0, 1 )
+custom_constants/shadow_offset_y = 3
+text = "0"
+align = 1
+valign = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+__meta__ = { "_edit_lock_":true }
+
+[node name="best_name" type="Label" parent="CanvasLayer/game_over_menu/best"]
+
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 0.0
+margin/top = 360.0
+margin/right = 385.0
+margin/bottom = 480.0
+custom_fonts/font = SubResource( 8 )
+custom_colors/font_color_shadow = Color( 0, 0, 0, 1 )
+custom_constants/shadow_offset_y = 2
+text = "Best"
+align = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+__meta__ = { "_edit_lock_":true }
+
+[node name="play_again_button" type="TextureButton" parent="CanvasLayer/game_over_menu"]
+
+process/pause_mode = 2
+rect/scale = Vector2( 0.3, 0.3 )
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 404.0
+margin/top = 762.0
+margin/right = 916.0
+margin/bottom = 1274.0
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+textures/normal = ExtResource( 31 )
+script/script = ExtResource( 32 )
+
+[node name="Rate" type="TextureButton" parent="CanvasLayer/game_over_menu"]
+
+process/pause_mode = 2
+rect/scale = Vector2( 0.6, 0.6 )
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 180.0
+margin/top = 780.0
+margin/right = 380.0
+margin/bottom = 980.0
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+textures/normal = ExtResource( 33 )
+script/script = ExtResource( 34 )
+
+[node name="new_best" type="Label" parent="CanvasLayer"]
+
+visibility/visible = false
+anchor/left = 3
+anchor/top = 3
+anchor/right = 3
+anchor/bottom = 3
+rect/rotation = 20.0
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 13.0
+margin/top = 173.0
+margin/right = -297.0
+margin/bottom = 53.0
+custom_fonts/font = SubResource( 9 )
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+text = "New Best"
+align = 1
+valign = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="CanvasLayer"]
+
+process/pause_mode = 2
+playback/process_mode = 1
+playback/default_blend_time = 0.0
+root/root = NodePath("..")
+anims/new_best = SubResource( 10 )
+playback/active = true
+playback/speed = 2.0
+blend_times = [  ]
+autoplay = ""
+
+[node name="Timer 2" type="Timer" parent="."]
+
+process_mode = 1
+wait_time = 5.0
+one_shot = false
+autostart = false
+
+[connection signal="area_enter" from="player" to="." method="_on_player_area_enter"]
+
+[connection signal="area_enter" from="Area2D" to="." method="_on_Area2D_area_enter"]
+
+[connection signal="area_enter" from="Area2D" to="Area2D" method="_on_Area2D_area_enter"]
+
+[connection signal="area_enter" from="Area2D1" to="." method="_on_Area2D1_area_enter"]
+
+[connection signal="timeout" from="Timer" to="." method="_on_Timer_timeout"]
+
+[connection signal="timeout" from="Timer 2" to="." method="_on_Timer_2_timeout"]
+
+

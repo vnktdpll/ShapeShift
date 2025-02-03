@@ -1,0 +1,539 @@
+[gd_scene load_steps=32 format=1]
+
+[ext_resource path="res://scripts/loading_menu.gd" type="Script" id=1]
+[ext_resource path="res://assets/94550006-3102-4844-815d-4be7b3ff44cf_1.png" type="Texture" id=2]
+[ext_resource path="res://assets/tri_path_1.png" type="Texture" id=3]
+[ext_resource path="res://assets/medium-black-circle_1.png" type="Texture" id=4]
+[ext_resource path="res://fonts/CaviarDreams_Bold.ttf" type="DynamicFontData" id=5]
+[ext_resource path="res://scripts/tap.gd" type="Script" id=6]
+[ext_resource path="res://assets/vol.png" type="Texture" id=7]
+[ext_resource path="res://scripts/vol.gd" type="Script" id=8]
+[ext_resource path="res://assets/mute.png" type="Texture" id=9]
+[ext_resource path="res://scripts/mute.gd" type="Script" id=10]
+[ext_resource path="res://assets/info.png" type="Texture" id=11]
+[ext_resource path="res://scripts/info.gd" type="Script" id=12]
+[ext_resource path="res://scripts/info_container.gd" type="Script" id=13]
+[ext_resource path="res://assets/94550006-3102-4844-815d-4be7b3ff44cf.png" type="Texture" id=14]
+[ext_resource path="res://assets/1517921717336.png" type="Texture" id=15]
+[ext_resource path="res://assets/1517921795031.png" type="Texture" id=16]
+[ext_resource path="res://assets/1517921841638.png" type="Texture" id=17]
+[ext_resource path="res://assets/1517921869038.png" type="Texture" id=18]
+[ext_resource path="res://assets/white_right_nav.png" type="Texture" id=19]
+[ext_resource path="res://assets/right_nav.png" type="Texture" id=20]
+[ext_resource path="res://scripts/right_nav.gd" type="Script" id=21]
+[ext_resource path="res://scripts/left_nav.gd" type="Script" id=22]
+[ext_resource path="res://assets/back.png" type="Texture" id=23]
+[ext_resource path="res://assets/back_black.png" type="Texture" id=24]
+[ext_resource path="res://scripts/back.gd" type="Script" id=25]
+
+[sub_resource type="DynamicFont" id=1]
+
+font/size = 120
+font/use_mipmaps = false
+font/use_filter = false
+font/font = ExtResource( 5 )
+
+[sub_resource type="DynamicFont" id=2]
+
+font/size = 60
+font/use_mipmaps = false
+font/use_filter = false
+font/font = ExtResource( 5 )
+
+[sub_resource type="Animation" id=3]
+
+resource/name = "loading"
+length = 3.0
+loop = false
+step = 0.1
+tracks/0/type = "value"
+tracks/0/path = NodePath("square:transform/pos")
+tracks/0/interp = 1
+tracks/0/imported = false
+tracks/0/keys = { "times":FloatArray( 0, 0.5 ), "transitions":FloatArray( 1, 1 ), "update":0, "values":[ Vector2( 360, 1320 ), Vector2( 360, 360 ) ] }
+tracks/1/type = "value"
+tracks/1/path = NodePath("square:visibility/opacity")
+tracks/1/interp = 1
+tracks/1/imported = false
+tracks/1/keys = { "times":FloatArray( 0, 0.5 ), "transitions":FloatArray( 1, 1 ), "update":0, "values":[ 1.0, 0.0 ] }
+tracks/2/type = "value"
+tracks/2/path = NodePath("triangle:transform/pos")
+tracks/2/interp = 1
+tracks/2/imported = false
+tracks/2/keys = { "times":FloatArray( 0.5, 1 ), "transitions":FloatArray( 1, 1 ), "update":0, "values":[ Vector2( 355, 1320 ), Vector2( 360, 360 ) ] }
+tracks/3/type = "value"
+tracks/3/path = NodePath("triangle:visibility/opacity")
+tracks/3/interp = 1
+tracks/3/imported = false
+tracks/3/keys = { "times":FloatArray( 0.5, 1 ), "transitions":FloatArray( 1, 1 ), "update":0, "values":[ 1.0, 0.0 ] }
+tracks/4/type = "value"
+tracks/4/path = NodePath("circle:visibility/opacity")
+tracks/4/interp = 1
+tracks/4/imported = false
+tracks/4/keys = { "times":FloatArray( 1, 1.5 ), "transitions":FloatArray( 1, 1 ), "update":0, "values":[ 1.0, 0.0 ] }
+tracks/5/type = "value"
+tracks/5/path = NodePath("circle:transform/pos")
+tracks/5/interp = 1
+tracks/5/imported = false
+tracks/5/keys = { "times":FloatArray( 1, 1.5 ), "transitions":FloatArray( 1, 1 ), "update":0, "values":[ Vector2( 360, 1320 ), Vector2( 360, 360 ) ] }
+tracks/6/type = "value"
+tracks/6/path = NodePath("shapeshift:visibility/opacity")
+tracks/6/interp = 1
+tracks/6/imported = false
+tracks/6/keys = { "times":FloatArray( 1.5, 2.5 ), "transitions":FloatArray( 1, 1 ), "update":0, "values":[ 0.0, 1.0 ] }
+tracks/7/type = "value"
+tracks/7/path = NodePath("shapeshift:rect/pos")
+tracks/7/interp = 1
+tracks/7/imported = false
+tracks/7/keys = { "times":FloatArray( 2.5, 3 ), "transitions":FloatArray( 1, 1 ), "update":0, "values":[ Vector2( 0, 480 ), Vector2( 0, 240 ) ] }
+tracks/8/type = "value"
+tracks/8/path = NodePath("tap:visibility/opacity")
+tracks/8/interp = 1
+tracks/8/imported = false
+tracks/8/keys = { "times":FloatArray( 2.5, 3 ), "transitions":FloatArray( 1, 1 ), "update":0, "values":[ 0.0, 1.0 ] }
+tracks/9/type = "value"
+tracks/9/path = NodePath("vol:visibility/visible")
+tracks/9/interp = 1
+tracks/9/imported = false
+tracks/9/keys = { "times":FloatArray(  ), "transitions":FloatArray(  ), "update":1, "values":[  ] }
+
+[sub_resource type="DynamicFont" id=4]
+
+font/size = 100
+font/use_mipmaps = false
+font/use_filter = false
+font/font = ExtResource( 5 )
+
+[sub_resource type="DynamicFont" id=5]
+
+font/size = 50
+font/use_mipmaps = false
+font/use_filter = false
+font/font = ExtResource( 5 )
+
+[sub_resource type="DynamicFont" id=6]
+
+font/size = 50
+font/use_mipmaps = false
+font/use_filter = false
+font/font = ExtResource( 5 )
+
+[node name="loading_menu" type="Node"]
+
+script/script = ExtResource( 1 )
+
+[node name="square" type="Sprite" parent="."]
+
+visibility/opacity = 0.0
+transform/pos = Vector2( 360, 360 )
+transform/scale = Vector2( 0.5, 0.48 )
+texture = ExtResource( 2 )
+__meta__ = { "_edit_lock_":true }
+
+[node name="triangle" type="Sprite" parent="."]
+
+visibility/opacity = 0.0
+transform/pos = Vector2( 360, 360 )
+transform/scale = Vector2( 0.5, 0.48 )
+texture = ExtResource( 3 )
+__meta__ = { "_edit_lock_":true }
+
+[node name="circle" type="Sprite" parent="."]
+
+visibility/opacity = 0.0
+transform/pos = Vector2( 360, 360 )
+transform/scale = Vector2( 0.48, 0.48 )
+texture = ExtResource( 4 )
+__meta__ = { "_edit_lock_":true }
+
+[node name="shapeshift" type="Label" parent="."]
+
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 0.0
+margin/top = 240.0
+margin/right = 720.0
+margin/bottom = 494.0
+custom_fonts/font = SubResource( 1 )
+custom_colors/font_color = Color( 0, 0, 0, 1 )
+text = "ShapeShift"
+align = 1
+valign = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="tap" type="Label" parent="."]
+
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 0.0
+margin/top = 720.0
+margin/right = 720.0
+margin/bottom = 960.0
+custom_fonts/font = SubResource( 2 )
+custom_colors/font_color = Color( 0, 0, 0, 1 )
+text = "Tap To Play"
+align = 1
+valign = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="tap_button" type="TextureButton" parent="."]
+
+process/pause_mode = 2
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 188.0
+margin/top = 814.0
+margin/right = 531.0
+margin/bottom = 872.0
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+script/script = ExtResource( 6 )
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+
+playback/process_mode = 1
+playback/default_blend_time = 0.0
+root/root = NodePath("..")
+anims/loading = SubResource( 3 )
+playback/active = true
+playback/speed = 0.5
+blend_times = [  ]
+autoplay = ""
+
+[node name="vol" type="TextureButton" parent="."]
+
+visibility/visible = false
+visibility/light_mask = 0
+rect/scale = Vector2( 0.6, 0.6 )
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 0.0
+margin/top = 1080.0
+margin/right = 200.0
+margin/bottom = 1280.0
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+textures/normal = ExtResource( 7 )
+script/script = ExtResource( 8 )
+
+[node name="mute" type="TextureButton" parent="."]
+
+visibility/visible = false
+visibility/light_mask = 0
+rect/scale = Vector2( 0.6, 0.6 )
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 0.0
+margin/top = 1080.0
+margin/right = 200.0
+margin/bottom = 1280.0
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+textures/normal = ExtResource( 9 )
+script/script = ExtResource( 10 )
+
+[node name="Timer" type="Timer" parent="."]
+
+process_mode = 1
+wait_time = 4.0
+one_shot = true
+autostart = true
+
+[node name="info" type="TextureButton" parent="."]
+
+visibility/visible = false
+rect/scale = Vector2( 0.2, 0.15 )
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 605.0
+margin/top = 1100.0
+margin/right = 1205.0
+margin/bottom = 1612.0
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+textures/normal = ExtResource( 11 )
+script/script = ExtResource( 12 )
+
+[node name="Info_container" type="Container" parent="."]
+
+visibility/visible = false
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 0.0
+margin/top = 0.0
+margin/right = 720.0
+margin/bottom = 1200.0
+script/script = ExtResource( 13 )
+__meta__ = { "_edit_lock_":true }
+
+[node name="Black" type="TextureFrame" parent="Info_container"]
+
+visibility/opacity = 0.55
+rect/scale = Vector2( 1, 0.835 )
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 0.0
+margin/top = 0.0
+margin/right = 720.0
+margin/bottom = 1440.0
+texture = ExtResource( 14 )
+stretch_mode = 0
+__meta__ = { "_edit_lock_":true }
+
+[node name="Objective" type="Container" parent="Info_container"]
+
+editor/display_folded = true
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 0.0
+margin/top = 0.0
+margin/right = 40.0
+margin/bottom = 40.0
+__meta__ = { "_edit_lock_":true }
+
+[node name="Objective" type="Label" parent="Info_container/Objective"]
+
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 0.0
+margin/top = 120.0
+margin/right = 720.0
+margin/bottom = 480.0
+custom_fonts/font = SubResource( 4 )
+text = "Objective"
+align = 1
+valign = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="text" type="Label" parent="Info_container/Objective"]
+
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 0.0
+margin/top = 600.0
+margin/right = 720.0
+margin/bottom = 960.0
+custom_fonts/font = SubResource( 5 )
+text = "Match the shape and position of the player with the falling tiles to score points."
+align = 1
+valign = 1
+autowrap = true
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="info_pic" type="Sprite" parent="Info_container"]
+
+editor/display_folded = true
+visibility/visible = false
+transform/pos = Vector2( 0, 240 )
+transform/scale = Vector2( 1.12853, 0.84507 )
+texture = ExtResource( 15 )
+centered = false
+__meta__ = { "_edit_group_":true, "_edit_lock_":true }
+
+[node name="Label" type="Label" parent="Info_container/info_pic"]
+
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 0.0
+margin/top = 568.0
+margin/right = 638.0
+margin/bottom = 994.0
+custom_fonts/font = SubResource( 6 )
+text = "Press and hold the right UI button to move the player right"
+align = 1
+valign = 1
+autowrap = true
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="info_pic1" type="Sprite" parent="Info_container"]
+
+editor/display_folded = true
+visibility/visible = false
+transform/pos = Vector2( 0, 240 )
+transform/scale = Vector2( 1.12853, 0.824742 )
+texture = ExtResource( 16 )
+centered = false
+__meta__ = { "_edit_group_":true, "_edit_lock_":true }
+
+[node name="Label" type="Label" parent="Info_container/info_pic1"]
+
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 0.0
+margin/top = 568.0
+margin/right = 638.0
+margin/bottom = 994.0
+custom_fonts/font = SubResource( 6 )
+text = "Press and hold the left UI button to move the player left"
+align = 1
+valign = 1
+autowrap = true
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="info_pic2" type="Sprite" parent="Info_container"]
+
+editor/display_folded = true
+visibility/visible = false
+transform/pos = Vector2( 0, 240 )
+transform/scale = Vector2( 1.12853, 0.84507 )
+texture = ExtResource( 17 )
+centered = false
+__meta__ = { "_edit_group_":true, "_edit_lock_":true }
+
+[node name="Label" type="Label" parent="Info_container/info_pic2"]
+
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 0.0
+margin/top = 568.0
+margin/right = 638.0
+margin/bottom = 994.0
+custom_fonts/font = SubResource( 6 )
+text = "Press and hold the triangle UI button to change the player to triangle"
+align = 1
+valign = 1
+autowrap = true
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="info_pic3" type="Sprite" parent="Info_container"]
+
+editor/display_folded = true
+visibility/visible = false
+transform/pos = Vector2( 0, 240 )
+transform/scale = Vector2( 1.12853, 0.84507 )
+texture = ExtResource( 18 )
+centered = false
+__meta__ = { "_edit_group_":true, "_edit_lock_":true }
+
+[node name="Label" type="Label" parent="Info_container/info_pic3"]
+
+focus/ignore_mouse = true
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 0
+margin/left = 0.0
+margin/top = 568.0
+margin/right = 638.0
+margin/bottom = 994.0
+custom_fonts/font = SubResource( 6 )
+text = "Press and hold the circle UI button to change the player to circle"
+align = 1
+valign = 1
+autowrap = true
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="Right_nav" type="TextureButton" parent="Info_container"]
+
+rect/scale = Vector2( 0.4, 0.4 )
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 560.0
+margin/top = 968.0
+margin/right = 1072.0
+margin/bottom = 1480.0
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+textures/normal = ExtResource( 19 )
+textures/pressed = ExtResource( 20 )
+script/script = ExtResource( 21 )
+
+[node name="Left_nav" type="TextureButton" parent="Info_container"]
+
+rect/rotation = 180.0
+rect/scale = Vector2( 0.4, 0.4 )
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 159.0
+margin/top = 1173.0
+margin/right = 671.0
+margin/bottom = 1685.0
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+textures/normal = ExtResource( 19 )
+textures/pressed = ExtResource( 20 )
+script/script = ExtResource( 22 )
+
+[node name="Back" type="TextureButton" parent="Info_container"]
+
+rect/scale = Vector2( 0.5, 0.5 )
+focus/ignore_mouse = false
+focus/stop_mouse = true
+size_flags/horizontal = 2
+size_flags/vertical = 2
+margin/left = 33.0
+margin/top = 64.0
+margin/right = 225.0
+margin/bottom = 256.0
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+textures/normal = ExtResource( 23 )
+textures/pressed = ExtResource( 24 )
+script/script = ExtResource( 25 )
+
+[node name="Timer 2" type="Timer" parent="."]
+
+process_mode = 1
+wait_time = 5.0
+one_shot = false
+autostart = false
+
+[connection signal="timeout" from="Timer" to="." method="_on_Timer_timeout"]
+
+[connection signal="timeout" from="Timer 2" to="mute" method="_on_Timer_2_timeout"]
+
+
