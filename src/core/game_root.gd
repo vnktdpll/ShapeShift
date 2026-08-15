@@ -11,6 +11,7 @@ var camera_rig: ArcadeCameraRig
 var fx: ArcadeFxDirector
 var audio_engine: ReactiveAudioEngine
 var hud: HUDController
+var input_bindings: InputBindingStore
 
 var state: GameEvents.RunState = GameEvents.RunState.READY
 var _state_before_pause: GameEvents.RunState = GameEvents.RunState.RUNNING
@@ -30,12 +31,17 @@ var _benchmark_target: float = 0.0
 var _restart_requested_at_usec: int = 0
 var _force_max_speed: bool = false
 var _restart_benchmark_count: int = 0
+var _controls_evidence := false
+var _evidence_delay := 9.0
+var _evidence_form := -1
 
 func _ready() -> void:
 	_build_runtime()
 	_parse_command_line()
 	_apply_settings()
-	if _autopilot or not _evidence_path.is_empty() or _benchmark_target > 0.0:
+	if _controls_evidence:
+		call_deferred("_capture_controls_evidence")
+	elif _autopilot or not _evidence_path.is_empty() or _benchmark_target > 0.0:
 		call_deferred("start_run", true)
 	if _restart_benchmark_count > 0:
 		get_tree().create_timer(0.5).timeout.connect(_run_restart_benchmark)
@@ -46,6 +52,9 @@ func _build_runtime() -> void:
 	add_child(events)
 	profile = ProfileStore.new()
 	profile.load_profile()
+	input_bindings = InputBindingStore.new()
+	input_bindings.capture_defaults()
+	input_bindings.restore(profile)
 	score_system = ScoreSystem.new()
 
 	environment = NeonCourseEnvironment.new()
@@ -70,7 +79,7 @@ func _build_runtime() -> void:
 	hud = HUDController.new()
 	hud.name = "HUD"
 	add_child(hud)
-	hud.setup(profile)
+	hud.setup(profile, input_bindings)
 
 	fx.set_emission_anchor(player)
 	fx.bind_events(events)
@@ -85,26 +94,51 @@ func _build_runtime() -> void:
 	hud.restart_requested.connect(_on_restart_requested)
 	hud.pause_requested.connect(_set_paused)
 	hud.settings_changed.connect(_apply_settings)
+	hud.gameplay_action_requested.connect(_on_gameplay_action_requested)
 	player.set_active(false)
 
 func _input(event: InputEvent) -> void:
+	if hud != null and hud.capture_confirm(event):
+		get_viewport().set_input_as_handled()
+		return
+	if hud != null and hud.capture_input(event):
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed(&"toggle_mute", false):
 		profile.muted = not profile.muted
 		profile.save_profile()
 		_apply_settings()
-		hud.toast("MUTED" if profile.muted else "AUDIO ONLINE", Color(0.45, 0.9, 1.0))
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed(&"pause_game", false) and state not in [GameEvents.RunState.READY, GameEvents.RunState.CRASHED, GameEvents.RunState.RESULTS]:
 		_set_paused(state != GameEvents.RunState.PAUSED)
 		get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed(&"restart_run", false):
+	# Menus own ui_accept. Never let a legacy or user-created binding overlap
+	# consume a focused controller press before the button receives it.
+	if event.is_action_pressed(&"restart_run", false) and state in [GameEvents.RunState.TUTORIAL, GameEvents.RunState.RUNNING, GameEvents.RunState.CRASHED, GameEvents.RunState.RESULTS]:
 		_on_restart_requested()
 		get_viewport().set_input_as_handled()
 		return
 	if state == GameEvents.RunState.READY and _is_gameplay_input(event):
 		start_run(false)
+
+
+func _on_gameplay_action_requested(action: StringName) -> void:
+	if action == &"pause_game":
+		if state in [GameEvents.RunState.TUTORIAL, GameEvents.RunState.RUNNING]:
+			_set_paused(true)
+		return
+	if state == GameEvents.RunState.READY:
+		start_run(false)
+	if state not in [GameEvents.RunState.TUTORIAL, GameEvents.RunState.RUNNING]:
+		return
+	match action:
+		&"move_left": player.move_left()
+		&"move_right": player.move_right()
+		&"shape_cube": player.set_shape(GameEvents.ShapeKind.CUBE)
+		&"shape_pyramid": player.set_shape(GameEvents.ShapeKind.PYRAMID)
+		&"shape_sphere": player.set_shape(GameEvents.ShapeKind.SPHERE)
 
 func _is_gameplay_input(event: InputEvent) -> bool:
 	for action: StringName in [&"move_left", &"move_right", &"shape_cube", &"shape_pyramid", &"shape_sphere"]:
@@ -124,7 +158,6 @@ func _process(delta: float) -> void:
 		environment.set_scroll_speed(_speed)
 		var intensity := clampf((_speed - track.base_speed) / maxf(0.01, track.max_speed - track.base_speed), 0.0, 1.0)
 		camera_rig.set_speed_normalized(intensity)
-		hud.update_speed(_speed / track.base_speed)
 		_speed_emit_clock += delta
 		if _speed_emit_clock >= 0.1:
 			_speed_emit_clock = 0.0
@@ -145,8 +178,9 @@ func start_run(is_automatic: bool = false) -> void:
 	track.reset_course(_seed)
 	state = GameEvents.RunState.TUTORIAL
 	hud.show_running()
-	hud.update_form(player.current_shape)
-	hud.show_tutorial("A / D TO SHIFT LANES   ·   1 / 2 / 3 TO MORPH")
+	hud.update_score(0)
+	if _evidence_form >= GameEvents.ShapeKind.CUBE:
+		player.set_shape(_evidence_form)
 	events.run_started.emit(_seed)
 	if not is_automatic:
 		audio_engine.play_menu_action()
@@ -163,10 +197,10 @@ func reset_run() -> void:
 	track.reset_course(_seed)
 	state = GameEvents.RunState.TUTORIAL
 	hud.show_running()
-	hud.prompt_label.visible = true
+	hud.update_score(0)
 	events.run_restarted.emit(_seed)
 	var restart_ms := float(Time.get_ticks_usec() - _restart_requested_at_usec) / 1000.0
-	hud.toast("RE-ENTRY  %.1f ms" % restart_ms, Color(0.35, 1.0, 0.8))
+	# Reset restores the lane/form, score, course, and active touch input in place.
 
 func fail_run() -> void:
 	if state in [GameEvents.RunState.CRASHED, GameEvents.RunState.RESULTS]:
@@ -203,18 +237,16 @@ func _on_player_lane_changed(lane: int) -> void:
 	_previous_lane = lane
 	events.lane_changed.emit(lane)
 	camera_rig.set_lane_direction(direction)
-	fx.emit_lane_trail(Vector3(PlayerController.LANE_X[lane], 0.0, 0.0), direction)
+	fx.emit_lane_trail_world(player.lane_world_position(lane), direction)
 
 func _on_player_shape_changed(shape: int) -> void:
 	var typed_shape: GameEvents.ShapeKind = shape as GameEvents.ShapeKind
 	events.shape_changed.emit(typed_shape)
-	hud.update_form(typed_shape)
 
 func _on_gate_telegraphed(lane: int, shape: GameEvents.ShapeKind, time_to_impact: float, tutorial_text: String) -> void:
 	_telegraph_count += 1
 	events.gate_telegraphed.emit(lane, shape, time_to_impact)
-	if not tutorial_text.is_empty():
-		hud.show_tutorial(tutorial_text)
+	# Gate geometry teaches the opening sequence; active play never displays prose.
 	if _autopilot:
 		var should_crash := _crash_for_evidence and _telegraph_count >= 5
 		_autopilot_target(lane, shape, maxf(0.0, time_to_impact - 0.42), should_crash)
@@ -235,25 +267,28 @@ func _on_gate_judged(kind: GameEvents.JudgmentKind, _base_points: int, gate_sequ
 	var awarded := score_system.register_judgment(kind, intensity)
 	events.gate_judged.emit(kind, awarded)
 	events.combo_changed.emit(score_system.combo, score_system.multiplier)
-	match kind:
-		GameEvents.JudgmentKind.PERFECT:
-			hud.toast("PERFECT  +%d" % awarded, Color(0.35, 1.0, 0.75), 0.55)
-			camera_rig.impulse_shake(0.045, 0.06)
-		GameEvents.JudgmentKind.NEAR_MISS:
-			hud.toast("NEAR MISS  +%d" % awarded, Color(1.0, 0.72, 0.2), 0.7)
-			camera_rig.impulse_shake(0.10, 0.08)
-		GameEvents.JudgmentKind.MISS:
-			hud.toast("FORM + LANE LOST", Color(1.0, 0.22, 0.48), 0.3)
-			fail_run()
+	if judgment_is_terminal(kind):
+		# ShapeShift is a one-attempt run: the first full miss is terminal.
+		player.play_damage_feedback()
+		camera_rig.impulse_shake(0.18, 0.12)
+		fail_run()
+	elif kind == GameEvents.JudgmentKind.PERFECT:
+		hud.pulse_success()
+		camera_rig.impulse_shake(0.045, 0.06)
+	else:
+		camera_rig.impulse_shake(0.10, 0.08)
 	if gate_sequence >= TrackPatternLibrary.TUTORIAL_COUNT - 1 and state == GameEvents.RunState.TUTORIAL:
 		state = GameEvents.RunState.RUNNING
-		hud.toast("GAUNTLET LIVE", Color(1.0, 0.3, 0.75), 1.0)
+
+
+static func judgment_is_terminal(kind: GameEvents.JudgmentKind) -> bool:
+	return kind == GameEvents.JudgmentKind.MISS
 
 func _on_score_changed(score: int, combo: int, multiplier: int) -> void:
 	hud.update_score(score, combo, multiplier)
 
 func _on_combo_milestone(combo: int) -> void:
-	hud.toast("×%d  OVERDRIVE" % score_system.multiplier, Color(1.0, 0.85, 0.25), 0.9)
+	hud.pulse_success()
 
 func _apply_settings() -> void:
 	player.reduced_motion = profile.reduced_motion
@@ -277,15 +312,30 @@ func _parse_command_line() -> void:
 			_crash_for_evidence = true
 		elif argument.begins_with("--evidence="):
 			_evidence_path = argument.trim_prefix("--evidence=")
+		elif argument.begins_with("--evidence-delay="):
+			_evidence_delay = maxf(0.25, argument.trim_prefix("--evidence-delay=").to_float())
+		elif argument.begins_with("--evidence-form="):
+			match argument.trim_prefix("--evidence-form=").to_lower():
+				"cube": _evidence_form = GameEvents.ShapeKind.CUBE
+				"pyramid": _evidence_form = GameEvents.ShapeKind.PYRAMID
+				"sphere": _evidence_form = GameEvents.ShapeKind.SPHERE
 		elif argument.begins_with("--benchmark="):
 			_benchmark_target = maxf(1.0, argument.trim_prefix("--benchmark=").to_float())
 		elif argument == "--max-speed":
 			_force_max_speed = true
+		elif argument == "--evidence-controls":
+			_controls_evidence = true
 		elif argument.begins_with("--restart-benchmark="):
 			_restart_benchmark_count = maxi(1, argument.trim_prefix("--restart-benchmark=").to_int())
 			_autopilot = true
 	if not _evidence_path.is_empty() and not _crash_for_evidence:
-		get_tree().create_timer(9.0).timeout.connect(_capture_and_quit)
+		get_tree().create_timer(_evidence_delay).timeout.connect(_capture_and_quit)
+
+
+func _capture_controls_evidence() -> void:
+	hud._open_controls()
+	await get_tree().create_timer(0.5).timeout
+	await _capture_and_quit()
 
 func _capture_and_quit() -> void:
 	if not _evidence_path.is_empty():

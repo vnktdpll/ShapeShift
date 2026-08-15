@@ -8,6 +8,12 @@ const GATE_SPEC_SCRIPT := preload("res://src/track/track_gate_spec.gd")
 const PATTERN_LIBRARY_SCRIPT := preload("res://src/track/track_pattern_library.gd")
 const FAIRNESS_SCRIPT := preload("res://src/track/track_fairness_solver.gd")
 const COURSE_SCRIPT := preload("res://src/track/track_course.gd")
+const GATE_SCRIPT := preload("res://src/track/track_gate_3d.gd")
+const FX_SCRIPT := preload("res://src/presentation/fx_director.gd")
+const PROFILE_SCRIPT := preload("res://src/core/profile_store.gd")
+const BINDINGS_SCRIPT := preload("res://src/core/input_binding_store.gd")
+const GAME_ROOT_SCRIPT := preload("res://src/core/game_root.gd")
+const HUD_SCRIPT := preload("res://src/ui/hud_controller.gd")
 
 var _failures: Array[String] = []
 var _checks := 0
@@ -25,7 +31,11 @@ func _run() -> void:
 	_test_score_combo_multiplier()
 	_test_fairness_and_patterns()
 	_test_player_contract_and_restart()
+	_test_player_visual_silhouettes()
 	_test_bounded_course_pool()
+	_test_bounded_interaction_fx()
+	_test_one_life_contract()
+	_test_binding_contract()
 	_finish()
 
 
@@ -79,6 +89,7 @@ func _test_fairness_and_patterns() -> void:
 	var previous: Variant = null
 	for index: int in range(10000):
 		var spec := PATTERN_LIBRARY_SCRIPT.make_spec(index, 2.0 + float(index) * 1.0, rng)
+		_expect(spec.targets.size() == 1, "generated target %d contains exactly one lane/form choice" % index)
 		pattern_counts[int(spec.pattern)] += 1
 		for target: Vector2i in spec.targets:
 			seen_pairs["%d:%d" % [target.x, target.y]] = true
@@ -122,6 +133,18 @@ func _test_player_contract_and_restart() -> void:
 	player.queue_free()
 
 
+func _test_player_visual_silhouettes() -> void:
+	var player_script: Script = load("res://src/player/player_controller.gd")
+	var player: Node3D = player_script.new()
+	player._ready()
+	for form_name: String in ["CubeForm", "PyramidForm", "SphereForm"]:
+		var form := player.find_child(form_name, true, false)
+		_expect(form != null, "%s has a persistent presentation node" % form_name)
+		if form != null:
+			_expect(form.get_child_count() == 1 and form.get_child(0) is MeshInstance3D, "%s is one solid mesh without cage/core/rim detail" % form_name)
+	player.queue_free()
+
+
 func _test_bounded_course_pool() -> void:
 	var course: Node3D = COURSE_SCRIPT.new()
 	course.pool_size = 6
@@ -130,6 +153,9 @@ func _test_bounded_course_pool() -> void:
 	course._ready()
 	course.reset_course(7719)
 	_expect(course.active_specs().size() == 6, "course pre-fills its configured gate pool")
+	_expect(course.visible_target_count() == 1, "course exposes exactly one standalone target after reset")
+	for spec: TrackGateSpec in course.active_specs():
+		_expect(spec.targets.size() == 1, "every active pooled gate owns one target")
 	var initial_specs: Array = course.active_specs()
 	course.reset_course(7719)
 	var reset_specs: Array = course.active_specs()
@@ -142,8 +168,111 @@ func _test_bounded_course_pool() -> void:
 			gate_nodes += 1
 	_expect(gate_nodes == 6, "course retains exactly its six allocated gate nodes")
 	_expect(course.active_specs().size() <= 6, "active gates never exceed configured pool")
-	print("[METRIC] gate_nodes=%d active_gates=%d pool_cap=%d" % [gate_nodes, course.active_specs().size(), course.pool_size])
+	_expect(course.visible_target_count() <= 1, "course never exposes multiple target shapes while advancing")
+	var sample_gate := course.get_child(0) as Node3D
+	var target_node_count := _descendant_count(sample_gate)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 919
+	for index: int in range(100):
+		sample_gate.configure(PATTERN_LIBRARY_SCRIPT.make_spec(index + 10, float(index + 2), rng))
+	_expect(_descendant_count(sample_gate) == target_node_count, "pooled target reconfiguration never allocates additional visual nodes")
+	print("[METRIC] gate_nodes=%d active_gates=%d visible_targets=%d target_nodes=%d" % [gate_nodes, course.active_specs().size(), course.visible_target_count(), target_node_count])
 	course.queue_free()
+
+
+func _test_bounded_interaction_fx() -> void:
+	var world := Node3D.new()
+	world.position = Vector3(11.0, 2.0, -7.0)
+	get_root().add_child(world)
+	var fx: Node3D = FX_SCRIPT.new()
+	world.add_child(fx)
+	var fixed_node_count := _descendant_count(fx)
+	for ignored: int in range(20):
+		fx.emit_impact(Vector3.ZERO)
+	_expect(fx.active_particle_count() <= fx.particle_capacity(), "repeated negative impacts remain inside the particle pool cap")
+	_expect(_descendant_count(fx) == fixed_node_count, "interaction bursts reuse nodes instead of allocating particle nodes")
+	fx._process(1.0)
+	_expect(fx.active_particle_count() == 0, "expired interaction particles return to the free pool")
+	fx.emit_success(Vector3.ZERO)
+	_expect(fx.active_particle_count() == 18, "positive target pass emits a visible bounded particle burst")
+	fx._process(1.0)
+	fx.set_reduced_flash(true)
+	fx.emit_impact(Vector3.ZERO)
+	_expect(fx.active_particle_count() <= 6, "reduced-flash mode caps interaction burst density")
+	# Reproduce the runtime hierarchy that originally left the effect anchor at
+	# center while the Avatar child moved. Every judged burst must follow the
+	# actual left/center/right avatar world position.
+	var player_script: Script = load("res://src/player/player_controller.gd")
+	var player: Node3D = player_script.new()
+	world.add_child(player)
+	fx.set_emission_anchor(player)
+	for lane: int in range(3):
+		player.reset_run(lane, EVENTS.ShapeKind.CUBE)
+		fx._on_gate_judged(EVENTS.JudgmentKind.PERFECT, 100)
+		_expect(fx.last_burst_origin_world().is_equal_approx(player.interaction_world_position()), "lane %d judged burst follows the player's world position" % lane)
+		fx.emit_lane_trail_world(player.lane_world_position(lane), 0.0)
+		_expect(fx.last_burst_origin_world().is_equal_approx(player.lane_world_position(lane)), "lane %d trail burst uses its world-space lane origin" % lane)
+	print("[METRIC] fx_nodes=%d particle_capacity=%d reduced_burst=%d" % [fixed_node_count, fx.particle_capacity(), fx.active_particle_count()])
+	world.queue_free()
+
+
+func _descendant_count(root: Node) -> int:
+	var total := root.get_child_count()
+	for child: Node in root.get_children():
+		total += _descendant_count(child)
+	return total
+
+
+func _test_one_life_contract() -> void:
+	_expect(GAME_ROOT_SCRIPT.judgment_is_terminal(EVENTS.JudgmentKind.MISS), "the first full miss is terminal in a one-attempt run")
+	_expect(not GAME_ROOT_SCRIPT.judgment_is_terminal(EVENTS.JudgmentKind.NEAR_MISS), "near miss remains survivable")
+	_expect(not GAME_ROOT_SCRIPT.judgment_is_terminal(EVENTS.JudgmentKind.PERFECT), "perfect judgment remains survivable")
+	print("[METRIC] one_life_terminal_judgment=MISS")
+
+
+func _test_binding_contract() -> void:
+	var bindings := BINDINGS_SCRIPT.new()
+	bindings.capture_defaults()
+	var profile := PROFILE_SCRIPT.new()
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_Q
+	var encoded := BINDINGS_SCRIPT.event_to_data(key)
+	var decoded := BINDINGS_SCRIPT.event_from_data(encoded)
+	_expect(BINDINGS_SCRIPT.events_match(key, decoded), "keyboard binding serialization round-trips")
+	var pad := InputEventJoypadButton.new()
+	pad.button_index = JOY_BUTTON_LEFT_SHOULDER
+	_expect(BINDINGS_SCRIPT.events_match(pad, BINDINGS_SCRIPT.event_from_data(BINDINGS_SCRIPT.event_to_data(pad))), "controller binding serialization round-trips")
+	var stick := InputEventJoypadMotion.new()
+	stick.axis = JOY_AXIS_LEFT_X
+	stick.axis_value = -1.0
+	_expect(BINDINGS_SCRIPT.events_match(stick, BINDINGS_SCRIPT.event_from_data(BINDINGS_SCRIPT.event_to_data(stick))), "controller axis binding serialization round-trips")
+	_expect(InputMap.action_get_events(&"move_left").any(func(event: InputEvent) -> bool: return event is InputEventJoypadMotion), "default controller movement supports the analog stick")
+	profile.input_bindings = {"move_left": [encoded]}
+	bindings.restore(profile)
+	_expect(InputMap.event_is_action(decoded, &"move_left", true), "persisted mapping restores to input action behavior")
+	var right_event: InputEvent = InputMap.action_get_events(&"move_right")[0]
+	var conflict := bindings.bind(&"move_left", right_event, profile, false, false)
+	_expect(not conflict.get("ok", true) and conflict.get("reason", "") == "conflict", "binding conflict is detected before mutation")
+	var displaced: InputEvent = InputMap.action_get_events(&"move_left")[0].duplicate()
+	var swapped := bindings.bind(&"move_left", right_event, profile, true, false)
+	_expect(swapped.get("ok", false) and not bindings.conflicts_for(&"move_left", right_event).has(&"move_right"), "explicit swap resolves a conflicting binding")
+	_expect(not bindings.conflicts_for(&"move_right", displaced).has(&"move_left"), "swap moves the displaced binding instead of creating a new conflict")
+	_expect(InputMap.action_get_events(&"move_right").any(func(event: InputEvent) -> bool: return BINDINGS_SCRIPT.events_match(event, displaced)), "conflicting action receives the target's displaced primary binding")
+	_expect(InputMap.action_get_events(&"ui_accept").any(func(event: InputEvent) -> bool: return event is InputEventJoypadButton), "controller can accept focused menus by default")
+	_expect(InputMap.action_get_events(&"ui_cancel").any(func(event: InputEvent) -> bool: return event is InputEventJoypadButton), "controller can cancel menus and capture by default")
+	var accept_event: InputEvent = InputMap.action_get_events(&"ui_accept").filter(func(event: InputEvent) -> bool: return event is InputEventJoypadButton)[0]
+	_expect(not InputMap.action_get_events(&"restart_run").any(func(event: InputEvent) -> bool: return BINDINGS_SCRIPT.events_match(event, accept_event)), "controller menu accept does not collide with restart")
+	_expect(bindings.readable_binding(&"move_right").contains("PAD") or bindings.readable_binding(&"move_right").contains("STICK"), "controls menu exposes a controller binding label")
+	var insets: Vector4 = HUD_SCRIPT.scaled_safe_insets(Vector2(1280, 720), Vector2i(2560, 1440), Rect2i(100, 50, 2360, 1340))
+	_expect(insets.is_equal_approx(Vector4(50, 25, 50, 25)), "touch safe-area insets scale into the gameplay viewport")
+	_expect(HUD_SCRIPT.TOUCH_FORM_ACTIONS == [&"shape_pyramid", &"shape_sphere"], "touch HUD exposes only triangle and circle form overrides")
+	_expect(HUD_SCRIPT.TOUCH_NEUTRAL_FORM == &"shape_cube", "touch form returns to cube when neither override is held")
+	InputMap.action_erase_events(&"move_left")
+	bindings.ensure_recovery(profile)
+	_expect(not InputMap.action_get_events(&"move_left").is_empty(), "recovery restores an unusable empty action")
+	bindings.reset_defaults(profile, false)
+	_expect(BINDINGS_SCRIPT.events_match(InputMap.action_get_events(&"move_left")[0], bindings._defaults[&"move_left"][0]), "reset defaults restores original mapping")
+	print("[METRIC] binding_actions=%d restored=%s" % [BINDINGS_SCRIPT.ACTIONS.size(), bindings.readable_binding(&"move_left")])
 
 
 func _finish() -> void:

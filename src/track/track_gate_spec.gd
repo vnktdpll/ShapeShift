@@ -2,7 +2,7 @@
 ##
 ## Coordinate contract: the player is fixed near world Z = 0 and faces -Z.
 ## Gates spawn at negative Z and travel towards positive Z, reaching the
-## judgment plane at Z = 0.  A target pair is one valid lane/form aperture.
+## judgment plane at Z = 0. A target pair is the one required lane/form match.
 class_name TrackGateSpec
 extends RefCounted
 
@@ -26,7 +26,11 @@ func _init(
 	) -> void:
 	sequence = p_sequence
 	pattern = p_pattern
-	targets = p_targets.duplicate()
+	# Canonicalize at the data boundary so even a malformed caller cannot create
+	# multiple simultaneous actionable choices.
+	targets.clear()
+	if not p_targets.is_empty():
+		targets.append(p_targets[0])
 	impact_time = p_impact_time
 	telegraph_seconds = p_telegraph_seconds
 	tutorial_text = p_tutorial_text

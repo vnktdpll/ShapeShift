@@ -29,7 +29,7 @@ static func validate_schedule(schedule: Array[TrackGateSpec]) -> Dictionary:
 		return {"valid": true, "checked": 0, "failure": ""}
 	for i: int in range(schedule.size()):
 		var spec: TrackGateSpec = schedule[i]
-		if spec.targets.is_empty() or spec.telegraph_seconds < MIN_TELEGRAPH_SECONDS:
+		if spec.targets.size() != 1 or spec.telegraph_seconds < MIN_TELEGRAPH_SECONDS:
 			return {"valid": false, "checked": i, "failure": "invalid gate %d" % spec.sequence}
 		for target: Vector2i in spec.targets:
 			if target.x < 0 or target.x > 2 or target.y < 0 or target.y > 2:

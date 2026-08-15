@@ -1,8 +1,8 @@
 {
 	"cycles": 20,
-	"p50_ms": 0.821,
-	"p95_ms": 0.985,
+	"p50_ms": 0.664,
+	"p95_ms": 0.901,
 	"passed": true,
 	"threshold_ms": 350.0,
-	"worst_ms": 1.121
+	"worst_ms": 0.962
 }

@@ -103,6 +103,14 @@ func active_specs() -> Array[TrackGateSpec]:
 	return specs
 
 
+func visible_target_count() -> int:
+	var count := 0
+	for child: Node in get_children():
+		if child is TrackGate3D:
+			count += (child as TrackGate3D).visible_target_count()
+	return count
+
+
 func deterministic_validation(count: int = 10000, seed: int = 7719) -> Dictionary:
 	return TrackFairnessSolver.simulate_judgments(count, seed)
 
@@ -174,6 +182,10 @@ func _judge(gate: TrackGate3D) -> void:
 	elif gate.spec.has_lane(_player_lane) or gate.spec.has_shape(_player_shape):
 		kind = GameEvents.JudgmentKind.NEAR_MISS
 		points = 25
+	# Hide the completed instruction before promoting its successor. Judgment
+	# feedback comes from the preallocated light and shared particle pool, so two
+	# target shapes can never overlap during the hand-off.
+	gate.set_visual_priority(TrackGate3D.VisualPriority.SUPPRESSED, 0.0)
 	gate.play_judgment_flash(kind != GameEvents.JudgmentKind.MISS)
 	gate_judged.emit(kind, points, gate.spec.sequence)
 	_active.erase(gate)

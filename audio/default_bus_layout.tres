@@ -1,4 +1,4 @@
-[gd_resource format=3]
+[gd_resource type="AudioBusLayout" load_steps=3 format=3]
 
 [sub_resource type="AudioEffectCompressor" id="AudioEffectCompressor_music"]
 resource_name = "Music Safety Compressor"

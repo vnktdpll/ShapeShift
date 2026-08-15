@@ -29,7 +29,7 @@ static func _tutorial_spec(index: int, impact_time: float) -> TrackGateSpec:
 		{"pattern": TrackGateSpec.Pattern.SINGLE_APERTURE, "targets": [Vector2i(2, GameEvents.ShapeKind.CUBE)], "text": "SHIFT RIGHT  ·  D / →"},
 		{"pattern": TrackGateSpec.Pattern.SINGLE_APERTURE, "targets": [Vector2i(2, GameEvents.ShapeKind.PYRAMID)], "text": "MORPH PYRAMID  ·  2 / K"},
 		{"pattern": TrackGateSpec.Pattern.SINGLE_APERTURE, "targets": [Vector2i(1, GameEvents.ShapeKind.SPHERE)], "text": "MORPH SPHERE  ·  3 / L"},
-		{"pattern": TrackGateSpec.Pattern.SPLIT_WALL, "targets": [Vector2i(0, GameEvents.ShapeKind.CUBE), Vector2i(2, GameEvents.ShapeKind.PYRAMID)], "text": "TWO SAFE ROUTES  ·  CHOOSE FAST"},
+		{"pattern": TrackGateSpec.Pattern.SPLIT_WALL, "targets": [Vector2i(0, GameEvents.ShapeKind.PYRAMID)], "text": "MATCH ONE TARGET"},
 	]
 	var step: Dictionary = steps[index]
 	var targets: Array[Vector2i] = []
@@ -40,13 +40,6 @@ static func _tutorial_spec(index: int, impact_time: float) -> TrackGateSpec:
 
 static func _targets_for(pattern: TrackGateSpec.Pattern, rng: RandomNumberGenerator) -> Array[Vector2i]:
 	var first := Vector2i(rng.randi_range(0, 2), rng.randi_range(0, 2))
-	if pattern == TrackGateSpec.Pattern.SINGLE_APERTURE:
-		return [first]
-	var second := Vector2i(rng.randi_range(0, 2), rng.randi_range(0, 2))
-	while second == first:
-		second = Vector2i(rng.randi_range(0, 2), rng.randi_range(0, 2))
-	# Transform corridors deliberately expose different forms, so their route is
-	# legible as an instruction to morph as well as move.
-	if pattern == TrackGateSpec.Pattern.TRANSFORM_CORRIDOR and second.y == first.y:
-		second.y = (first.y + rng.randi_range(1, 2)) % 3
-	return [first, second]
+	# Pattern affects pacing/accent metadata, never the number of choices. The
+	# player is always asked to match exactly one lane/form pair.
+	return [first]

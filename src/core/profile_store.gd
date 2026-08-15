@@ -10,6 +10,7 @@ var muted: bool = false
 var reduced_motion: bool = false
 var reduced_flash: bool = false
 var quality: int = 2
+var input_bindings: Dictionary = {}
 
 func load_profile() -> void:
 	if not FileAccess.file_exists(SAVE_PATH):
@@ -28,6 +29,7 @@ func load_profile() -> void:
 	reduced_motion = bool(data.get("reduced_motion", false))
 	reduced_flash = bool(data.get("reduced_flash", false))
 	quality = clampi(int(data.get("quality", 2)), 0, 2)
+	input_bindings = data.get("input_bindings", {}) if data.get("input_bindings", {}) is Dictionary else {}
 
 func save_profile() -> void:
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -41,6 +43,7 @@ func save_profile() -> void:
 		"reduced_motion": reduced_motion,
 		"reduced_flash": reduced_flash,
 		"quality": quality,
+		"input_bindings": input_bindings,
 	}
 	file.store_string(JSON.stringify(data, "\t"))
 

@@ -247,3 +247,225 @@ five-minute soak passes, and two consecutive fresh critics find no material gap.
 The bounded Gauntlet stops after six rounds. The highest-value optional next
 improvement is a seeded daily challenge with a local ghost replay, adding a
 repeatable mastery target without diluting the core mechanic.
+
+## Refinement Gauntlet — 2026-08-15
+
+### New acceptance target
+
+The active game may show only numeric score and lives text; all other play-state
+communication must be nonverbal. Touch, keyboard, and controller must complete
+the full loop, while keyboard/controller bindings support capture, cancel,
+conflict swap, defaults, recovery, and persistence. The supplied neon images are
+principle-only references: no external assets or copied compositions.
+
+### Baseline verdict — FAIL
+
+- Scores: HUD restraint 1, touch 1, keyboard 7, controller 4, remapping 1,
+  visuals 7, readability 6, technical 7, performance 6.
+- Direct capture `docs/evidence/v2-baseline-max-speed.png` showed persistent
+  form/combo/speed/instruction/judgment prose and world-space gate labels.
+- No touch gameplay, lives, remapping, analog-stick movement, or binding tests
+  existed. A fresh 15-second forced-max run measured 17.69 ms p95.
+- Largest gap: a coherent cross-device controls and remapping system.
+
+### Round 1 — controls, restraint, and neon cohesion (critic active)
+
+- Gameplay HUD now contains only numeric score and lives. Gate labels and all
+  active-play prose/toasts/instructions were removed; visual pulses, geometry,
+  audio, and icons carry feedback.
+- Added three-life runs with two nonfatal misses and a terminal third miss.
+- Added large safe-area touch targets for two lanes, three forms, and pause;
+  keyboard, D-pad, face buttons, and analog-stick lane movement remain active.
+- Added persistent keyboard/controller remapping for gameplay and menu actions,
+  including capture/cancel, explicit conflict swap, defaults, focus navigation,
+  empty-binding recovery, and device-neutral serialization.
+- Applied an original dark-indigo/cyan/magenta course pass with selective amber,
+  matte structures, repeated frames, label-free apertures, and controlled bloom.
+- Direct evidence: `v2-round1-gameplay.png`, `v2-round1-max-speed.png`,
+  `v2-visual-initial.png`, and `v2-visual-max-speed.png` under `docs/evidence/`.
+- `tools/validate.sh`: parser/import, 10,144 deterministic checks, audio/
+  presentation smoke, and a new active-main-scene runtime smoke all pass.
+- Twenty results-to-restart cycles: 0.664 ms p50, 0.901 ms p95, 0.962 ms worst.
+- Fresh integrated 30-second forced-max High run: 12.963 ms p50, 16.667 ms p95,
+  22.713 ms p99 at 1280×720. The 16.7 ms p95 gate passes narrowly.
+- Fresh critic: **FAIL**. Scores: HUD 9, touch 6, keyboard 8,
+  controller 4, remapping 5, visuals 7, readability 8, technical 7,
+  performance 7. The controls gap was materially improved but remained open:
+  controller menus lacked default accept/cancel; controller capture could not
+  cancel; the apparent conflict swap created a displaced-event duplicate; and
+  touch placement did not consult the platform safe area.
+
+### Round 2 — controller-complete repair (critic active)
+
+- Added default controller accept/cancel actions while retaining keyboard menu
+  controls, plus analog-stick lane movement.
+- Controller/menu-back now cancels binding capture. Capture copy is device-
+  neutral rather than Escape-only.
+- Reworked conflict swaps to move the target primary event, remove the incoming
+  event from the conflicting action, and prove that neither side retains a new
+  duplicate.
+- Touch/HUD placement now scales the platform display safe area into viewport
+  coordinates and recomputes on viewport resize/orientation change.
+- Fixed a rendered-state integration defect found through direct evidence:
+  hiding the score card had hidden the entire HUD canvas, including menus.
+  Controls/settings now hide and restore their underlying menu cleanly, all
+  primary menus establish controller focus, and menu-back closes overlays.
+- Added direct controls-menu evidence at `docs/evidence/v2-controls-menu.png`.
+- `tools/validate.sh`: 10,148 checks plus parser, audio/presentation, and active
+  runtime smoke pass. New checks cover controller axis serialization, default
+  menu accept/cancel, conflict-free displaced bindings, and safe-area scaling.
+- Fresh critic: **FAIL**. Scores: HUD 9, touch 8, keyboard 8, controller 5,
+  remapping 6, visuals 7, readability 8, technical 7, performance 9. Independent
+  forced-max High p95 was 9.523 ms, but controller South/A was shared by restart
+  and menu accept; `GameRoot` consumed restart before focused buttons could act.
+  A clean cache-free import also exposed a malformed audio bus resource header.
+
+### Round 3 — conflict-free defaults, packaging, and visual depth (critic active)
+
+- Moved controller restart from South/A to right shoulder, leaving South/A as
+  unambiguous menu accept. Added an automated default-action collision check.
+- Controls rows now display both keyboard and controller/axis labels instead of
+  hiding controller availability behind the first keyboard event.
+- Strengthened the swap test to capture the actual pre-swap primary event and
+  prove it moved to the conflicting action without remaining on the target.
+- Corrected `default_bus_layout.tres` to declare `AudioBusLayout` and load steps.
+  A fresh temporary copy with no `.godot` cache now imports with zero parser or
+  resource errors.
+- Added elevated peripheral bays, recessed side ribbons, and pylon slit/band
+  detailing with shared materials and no extra runtime lights. The central gate,
+  aperture, player, and lane boundaries remain the dominant decision read.
+- Reduced only fog-obscured recycled dressing from fourteen to twelve segments
+  after cross-run variance exposed a too-narrow frame-time margin.
+- Direct evidence: `docs/evidence/v2-round3-initial.png`,
+  `docs/evidence/v2-round3-max-speed.png`, and the latest integrated capture
+  `docs/evidence/v2-round3-integrated-max.png`.
+- `tools/validate.sh`: 10,151 checks plus all smoke gates pass.
+- Fresh integrated 30-second forced-maximum High run at 1280×720: 6.896 ms
+  p50, 6.944 ms p95, and 15.528 ms p99 against the 16.7 ms p95 gate.
+- Fresh critic: **FAIL** only on visual fidelity (7); HUD 9, touch 8,
+  keyboard 8, controller 8, remapping 8, readability 8, technical 8, and
+  performance 9. The environment still read as a clean neon prototype rather
+  than a layered cyberpunk space. This became the baseline for the user's
+  expanded Round 4 brief.
+
+### Round 4 — standalone targets, interaction FX, and cyberpunk city (critic pending)
+
+- Replaced rectangular gate assemblies with large standalone emissive outline
+  targets. Only the nearest target is visible/actionable; each generated spec
+  now contains exactly one lane/form pair, including the tutorial sequence.
+- Target meshes, judgment lights, and interaction sparks are bounded and pooled.
+  Perfect, near-miss, and miss interactions all produce particles; reduced-flash
+  caps the burst at six particles.
+- Added three depth layers of cyberpunk skyline masses, window bands, service
+  megadecks, elevated conduits, and abstract non-text light panels using shared
+  materials and MultiMeshes. A final material-only lift improved city separation
+  without adding lights or geometry.
+- The touch form HUD now shows only triangle and circle hold overrides. Releasing
+  the last held override returns the player to the neutral square/cube form.
+- Direct evidence: `docs/evidence/v2-round4-standalone-target.png`,
+  `docs/evidence/v2-round4-cyberpunk-initial.png`,
+  `docs/evidence/v2-round4-cyberpunk-max-speed.png`, and
+  `docs/evidence/v2-round4-final.png`.
+- `tools/validate.sh` passes parser/import, 20,167 deterministic checks,
+  presentation/audio smoke, and an integrated 90-frame runtime invariant check.
+- Fresh integrated 30-second forced-maximum High run at 1280×720: 11.111 ms
+  p50, 16.025 ms p95, and 21.563 ms p99; the 16.7 ms p95 gate passes.
+- Fresh critic: **FAIL**. The triangle was clipped into the deck and therefore
+  read as a caret; cube/sphere lacked direct evidence. The new skyline remained
+  too distant/dark, with a blank close column and too much flat blue void.
+- Repair: raised every target above the deck, reduced two fog-obscured road
+  segments, broadened/foregrounded abstract light panels, added three-row
+  inhabited façade rhythm to all midground towers, strengthened cyan/magenta
+  separation, and lifted the horizon haze.
+- New direct all-form evidence: `docs/evidence/v2-round4-cube.png`,
+  `docs/evidence/v2-round4-pyramid.png`, `docs/evidence/v2-round4-sphere.png`,
+  and `docs/evidence/v2-round4-repair.png`. Each shows one complete standalone
+  silhouette above the deck.
+- Post-repair 30-second forced-maximum High run: 10.869 ms p50, 15.150 ms
+  p95, and 20.940 ms p99. Full validation remains green at 20,167 checks.
+- Fresh repair critic: **PASS**. Scores: HUD 9, touch 9, keyboard 8,
+  controller 8, remapping 8, visual fidelity 8, readability 9, technical 9,
+  performance 8, standalone targets 9, interaction particles 8, cyberpunk
+  background 8, and neutral touch behavior 9. No material gap found.
+- Next action: final independent stopping critic for the required consecutive
+  verdict.
+- Final stopping critic: **PASS**, with the same acceptance floor and no
+  material gap. Its clean-copy 30-second maximum-speed run measured 10.614 ms
+  p50 and 16.667 ms p95. Parser/import, 20,167 checks, audio/presentation, and
+  runtime smoke passed again.
+- Stop decision: two consecutive fresh critics pass every category at 8 or
+  higher. The bounded Round 4 Gauntlet stops. The lack of recorded physical
+  controller/multitouch footage remains an evidence limitation, not a code gap.
+
+### Round 5 — one life and an enclosing illuminated city (builders active)
+
+- New target supersedes the prior lives requirement: active play shows score
+  only, the first miss immediately ends the run, and restart begins a fresh
+  one-attempt run in place.
+- New visual target: bring procedural city massing into the near and midground
+  around both sides of the platform, with close façade/screen/cable rhythm,
+  bounded illuminated street fixtures, visible light pools, and stronger
+  interaction/atmospheric particles. Reference images remain principle-only.
+- Baseline evidence `docs/evidence/v2-round4-repair.png` passes the prior round
+  but still places most tower mass near the horizon and shows a lives counter.
+- Builders split along independent one-life/HUD and city/lighting boundaries;
+  integration will freeze only after runtime, clean import, all-form readability,
+  restart, particle boundedness, and maximum-speed performance evidence pass.
+- One-life integration removes only the lives concept/card/dependency. Score,
+  touch controls, pause/results/settings, and remapping remain. Runtime smoke
+  proves the first MISS enters CRASHED/RESULTS and restart restores a fresh
+  score-zero active run.
+- The city now begins beside the player with dense near/mid/far façade stacks,
+  abstract illuminated panels, side cantilevers, overhead utility cables, four
+  shadowless real street lights, emissive fixtures/light pools, and one fixed
+  36-particle rain/haze emitter. Reduced-flash lowers atmosphere density.
+- Follow-up observation repair: the city now uses three moving depth belts:
+  five close chunks at 0.86× course speed, seven mid-city chunks at 0.52×, and
+  eight far-city chunks at 0.30×. Each belt recycles independently and only one
+  off-camera chunk can cross a belt boundary at a time; each close chunk's
+  buildings, emissive fixtures, and optional street light stay one hierarchy.
+- Rejected both a duplicated two-district design (30.0 ms forced-maximum p95)
+  and a cheaper whole-district wrap after direct play exposed its synchronized
+  pop. The retained three-belt chunk design preserves invariant circular spacing and
+  a fixed 414-node/4-light/36-particle budget. The final denser, all-moving city
+  measured 11.111 ms p50, 16.327 ms p95, and 22.236 ms p99 over 30 seconds at
+  forced maximum speed.
+- Fixed gameplay bursts that had followed the centered controller node instead
+  of its lane-moving Avatar. All judged and lane-trail bursts now convert the
+  player's true world position; deterministic translated-hierarchy checks cover
+  left, center, and right.
+- Replaced each player cage/core/rim assembly with one solid persistent mesh.
+  Cube, pyramid, and sphere retain morph/color identity without internal lines.
+- Aligned the icon-only pause control with the score on the same top HUD row.
+- Evidence: `v2-round5-city-initial.png`, `v2-round5-city-max-speed.png`,
+  the final all-layer motion sequence
+  `v2-round5-all-city-layers-frame-{100,175,250,325}.png`,
+  and `v2-round5-solid-{cube,pyramid,sphere}.png` under `docs/evidence/`.
+- `tools/validate.sh` passes parser/import, 20,176 deterministic checks,
+  presentation/audio, city-scroll budgets, one-life restart, and integrated
+  runtime smoke.
+- The first close-chunk-only repair was not the stopping artifact: direct user
+  review found that its close façades moved while mid/far building layers stayed
+  fixed. Round 5 reopened with a stricter requirement that every building layer
+  scroll at a depth-appropriate rate. The retained replacement increases density
+  with dark mid/far silhouette massing and low-energy bands outside the decision
+  cone; sequential evidence shows enclosure without a synchronized wrap.
+- Fresh critic: **FAIL** only on all-building motion (7/10). It found that the
+  central `HorizonBeacon` remained fixed under `_course_root`, outside all three
+  tested chunk pools. Continuity scored 9, density 8, readability 9, boundedness
+  9, and performance 9.
+- Repair: removed the stationary beacon geometry while retaining its invisible
+  global directional light. Runtime smoke now rejects any reintroduced
+  `HorizonBeacon`; every visible architectural city element belongs to a moving,
+  independently recycled depth belt.
+- Fresh post-repair critic: **PASS**. Scores: all-building motion 10,
+  continuity 9, density 9, readability/non-distraction 9, boundedness 10, and
+  performance 8. It found no remaining stationary building-like geometry or
+  material regression; the only caution is modest p95 headroom.
+- Final stopping critic: **PASS** with the same 10/9/9/9/10/8 score floor. It
+  independently confirmed that only non-architectural stars and atmosphere stay
+  world-fixed, all building and course infrastructure moves, and the four-frame
+  sequence has no visible gap or synchronized pop.
+- Stop decision: two consecutive fresh critics pass every Round 5 category at
+  8 or higher. The Gauntlet stops; the remaining non-blocking caution is the
+  0.373 ms p95 margin before any further visual density is added.

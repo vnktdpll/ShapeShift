@@ -34,7 +34,6 @@ var state := PlayerState.READY
 var _avatar: Node3D
 var _shape_nodes: Array[Node3D] = []
 var _shape_materials: Array[StandardMaterial3D] = []
-var _shape_detail_materials: Array[Array] = []
 var _trail_nodes: Array[MeshInstance3D] = []
 var _trail_materials: Array[StandardMaterial3D] = []
 var _rings: Array[MeshInstance3D] = []
@@ -148,6 +147,17 @@ func set_impacted() -> void:
 		impact_tween.tween_property(_avatar, "scale", Vector3.ONE, 0.14)
 
 
+## A nonfatal miss must stay playable: this is visual feedback only and never
+## changes the logical state or disables input.
+func play_damage_feedback() -> void:
+	_trigger_shift_burst(0.16)
+	if _avatar == null:
+		return
+	var damage_tween := create_tween()
+	damage_tween.tween_property(_avatar, "scale", Vector3(1.18, 0.76, 1.18), 0.055)
+	damage_tween.tween_property(_avatar, "scale", Vector3.ONE, 0.16)
+
+
 ## In-place reset for the near-instant fail -> restart loop.
 func reset_player(start_lane := 1, start_shape := GameEvents.ShapeKind.CUBE) -> void:
 	lane = clampi(start_lane, 0, LANE_X.size() - 1)
@@ -179,6 +189,18 @@ func reset_player(start_lane := 1, start_shape := GameEvents.ShapeKind.CUBE) -> 
 ## Alias used by game orchestration code that treats the player as a run component.
 func reset_run(start_lane := 1, start_shape := GameEvents.ShapeKind.CUBE) -> void:
 	reset_player(start_lane, start_shape)
+
+
+## World-space anchor used by interaction effects. The PlayerController node
+## itself stays centered while its Avatar child moves between lanes.
+func interaction_world_position() -> Vector3:
+	return _avatar.global_position if is_instance_valid(_avatar) else global_position
+
+
+## Stable world-space lane position for effects that announce a completed
+## logical lane selection before the short presentation tween has settled.
+func lane_world_position(target_lane: int) -> Vector3:
+	return to_global(Vector3(LANE_X[clampi(target_lane, 0, LANE_X.size() - 1)], 0.0, 0.0))
 
 
 func _animate_lane(from_lane: int, to_lane: int) -> void:
@@ -232,10 +254,6 @@ func _animate_shape_shift(previous_shape: int, next_shape: int) -> void:
 	_morph_tween.tween_property(_shape_materials[previous_shape], "albedo_color:a", 0.0, duration)
 	_morph_tween.tween_property(incoming, "scale", Vector3.ONE, duration)
 	_morph_tween.tween_property(_shape_materials[next_shape], "albedo_color:a", 1.0, duration)
-	for material: StandardMaterial3D in _shape_detail_materials[previous_shape]:
-		_morph_tween.tween_property(material, "albedo_color:a", 0.0, duration)
-	for material: StandardMaterial3D in _shape_detail_materials[next_shape]:
-		_morph_tween.tween_property(material, "albedo_color:a", 1.0, duration)
 	_trigger_shift_burst(duration)
 
 
@@ -247,6 +265,7 @@ func _build_avatar() -> void:
 	_add_shape_visual(_create_cube_mesh(), CUBE_COLOR, "CubeForm")
 	_add_shape_visual(_create_pyramid_mesh(), PYRAMID_COLOR, "PyramidForm")
 	_add_shape_visual(_create_sphere_mesh(), SPHERE_COLOR, "SphereForm")
+	_build_form_anchor()
 	_build_shift_rings()
 	_build_trail()
 	_build_hitbox()
@@ -257,105 +276,40 @@ func _add_shape_visual(mesh: Mesh, tint: Color, visual_name: String) -> void:
 	form_root.name = visual_name
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.mesh = mesh
-	# A shaded metallic body catches the course lighting; bounded emission keeps
-	# the form vivid without turning it into an unreadable bloom blob.
+	# Each persistent form is exactly one closed mesh. No cage, core, rim, or
+	# interior ornament can break the cube/pyramid/sphere silhouette.
 	var material := _make_form_material(tint, 1.35)
 	mesh_instance.material_override = material
 	form_root.add_child(mesh_instance)
-	var detail_materials: Array[StandardMaterial3D] = []
-	var cage_material := _make_emissive_material(tint.lightened(0.10), 1.85)
-	detail_materials.append(cage_material)
-	_build_form_cage(form_root, visual_name, cage_material)
-	# A compact core provides a measured focal point through the open cage.
-	var core := MeshInstance3D.new()
-	var core_mesh := SphereMesh.new()
-	core_mesh.radius = 0.17
-	core_mesh.height = 0.34
-	core_mesh.radial_segments = 12
-	core_mesh.rings = 6
-	core.mesh = core_mesh
-	var core_material := _make_emissive_material(tint.lightened(0.18), 2.15)
-	core_material.albedo_color.a = 0.94
-	core.material_override = core_material
-	form_root.add_child(core)
-	detail_materials.append(core_material)
-	# The rear ring reads as a rim from the chase camera rather than a halo.
-	var rim := MeshInstance3D.new()
-	var rim_mesh := TorusMesh.new()
-	rim_mesh.inner_radius = 0.49
-	rim_mesh.outer_radius = 0.535
-	rim_mesh.rings = 16
-	rim_mesh.ring_segments = 6
-	rim.mesh = rim_mesh
-	rim.position.z = 0.36
-	rim.rotation.x = PI * 0.5
-	var rim_material := _make_emissive_material(tint.darkened(0.08), 1.15)
-	rim_material.albedo_color.a = 0.65
-	rim.material_override = rim_material
-	form_root.add_child(rim)
-	detail_materials.append(rim_material)
 	_avatar.add_child(form_root)
 	_shape_nodes.append(form_root)
 	_shape_materials.append(material)
-	_shape_detail_materials.append(detail_materials)
 
 
-func _build_form_cage(parent: Node3D, visual_name: String, material: StandardMaterial3D) -> void:
-	match visual_name:
-		"CubeForm":
-			# Twelve fine rails preserve the literal cube outline while suggesting
-			# a machined energy cage.
-			for y: float in [-0.67, 0.67]:
-				for z: float in [-0.67, 0.67]:
-					_add_cage_bar(parent, Vector3(1.39, 0.045, 0.045), Vector3(0, y, z), material)
-			for x: float in [-0.67, 0.67]:
-				for z: float in [-0.67, 0.67]:
-					_add_cage_bar(parent, Vector3(0.045, 1.39, 0.045), Vector3(x, 0, z), material)
-			for x: float in [-0.67, 0.67]:
-				for y: float in [-0.67, 0.67]:
-					_add_cage_bar(parent, Vector3(0.045, 0.045, 1.39), Vector3(x, y, 0), material)
-		"PyramidForm":
-			var corners := [Vector3(-0.85, -0.76, -0.85), Vector3(0.85, -0.76, -0.85), Vector3(0.85, -0.76, 0.85), Vector3(-0.85, -0.76, 0.85)]
-			var apex := Vector3(0, 0.96, 0)
-			for corner: Vector3 in corners:
-				_add_cage_between(parent, corner, apex, material)
-			for index in 4:
-				_add_cage_between(parent, corners[index], corners[(index + 1) % 4], material)
-		"SphereForm":
-			for angle: float in [0.0, PI * 0.5, PI * 0.25]:
-				var ring := MeshInstance3D.new()
-				var ring_mesh := TorusMesh.new()
-				ring_mesh.inner_radius = 0.76
-				ring_mesh.outer_radius = 0.795
-				ring_mesh.rings = 20
-				ring_mesh.ring_segments = 6
-				ring.mesh = ring_mesh
-				ring.rotation = Vector3(PI * 0.5, angle, angle * 0.32)
-				ring.material_override = material
-				parent.add_child(ring)
-
-
-func _add_cage_between(parent: Node3D, from: Vector3, to: Vector3, material: StandardMaterial3D) -> void:
-	var delta := to - from
-	var rail := _cage_box(Vector3(0.045, 0.045, delta.length()), material)
-	rail.position = (from + to) * 0.5
-	rail.quaternion = Quaternion(Vector3.FORWARD, delta.normalized())
-	parent.add_child(rail)
-
-
-func _add_cage_bar(parent: Node3D, size: Vector3, position: Vector3, material: StandardMaterial3D) -> void:
-	var rail := _cage_box(size, material)
-	rail.position = position
-	parent.add_child(rail)
-
-
-func _cage_box(size: Vector3, material: StandardMaterial3D) -> MeshInstance3D:
-	var rail := MeshInstance3D.new()
-	var rail_mesh := BoxMesh.new()
-	rail_mesh.size = size
-	rail.mesh = rail_mesh
-	rail.material_override = material
-	return rail
+func _build_form_anchor() -> void:
+	# A compact matte plinth separates the vivid player silhouette from the road
+	# without becoming a platform or a second gameplay marker.  The three short
+	# cyan dashes echo the course language and make the avatar's grounded position
+	# legible when the speed FOV opens up.
+	var plinth := MeshInstance3D.new()
+	plinth.name = "FormAnchor"
+	var plinth_mesh := CylinderMesh.new()
+	plinth_mesh.top_radius = 0.94
+	plinth_mesh.bottom_radius = 0.76
+	plinth_mesh.height = 0.12
+	plinth_mesh.radial_segments = 24
+	plinth.mesh = plinth_mesh
+	plinth.position.y = -0.79
+	plinth.material_override = _make_anchor_material()
+	_avatar.add_child(plinth)
+	for offset in [-0.42, 0.0, 0.42]:
+		var dash := MeshInstance3D.new()
+		var dash_mesh := BoxMesh.new()
+		dash_mesh.size = Vector3(0.18, 0.026, 0.10)
+		dash.mesh = dash_mesh
+		dash.position = Vector3(offset, -0.72, 0.37)
+		dash.material_override = _make_emissive_material(CUBE_COLOR, 0.72)
+		_avatar.add_child(dash)
 
 
 func _build_shift_rings() -> void:
@@ -383,14 +337,14 @@ func _build_trail() -> void:
 	trail_mesh.outer_radius = 0.29
 	trail_mesh.rings = 16
 	trail_mesh.ring_segments = 6
-	for index in 8:
+	for index in 6:
 		var afterimage := MeshInstance3D.new()
 		afterimage.name = "TrailEcho%d" % index
 		afterimage.mesh = trail_mesh
 		afterimage.position = Vector3(LANE_X[lane], 0.0, 0.65 + index * 0.38)
 		afterimage.rotation.x = PI * 0.5
-		var material := _make_emissive_material(CUBE_COLOR, 1.55)
-		material.albedo_color.a = 0.26 * (1.0 - float(index) / 9.0)
+		var material := _make_emissive_material(CUBE_COLOR, 1.08)
+		material.albedo_color.a = 0.18 * (1.0 - float(index) / 7.0)
 		afterimage.material_override = material
 		add_child(afterimage)
 		_trail_nodes.append(afterimage)
@@ -419,7 +373,7 @@ func _update_trail(delta: float) -> void:
 		echo.position = echo.position.lerp(target, minf(1.0, delta * (15.0 - index * 0.9)))
 		echo.rotation.z += delta * (1.8 + index * 0.16)
 		echo.scale = Vector3.ONE * (0.72 + index * 0.055)
-		var alpha := 0.22 * (1.0 - float(index) / 9.0)
+		var alpha := 0.16 * (1.0 - float(index) / 7.0)
 		_trail_materials[index].albedo_color = Color(tint.r, tint.g, tint.b, alpha)
 
 
@@ -443,9 +397,6 @@ func _trigger_shift_burst(duration: float) -> void:
 func _set_shape_alpha(shape_index: int, alpha: float) -> void:
 	var tint := _shape_color(shape_index)
 	_shape_materials[shape_index].albedo_color = Color(tint.r, tint.g, tint.b, alpha)
-	for material: StandardMaterial3D in _shape_detail_materials[shape_index]:
-		var detail_tint := material.albedo_color
-		material.albedo_color = Color(detail_tint.r, detail_tint.g, detail_tint.b, alpha)
 
 
 func _shape_color(shape: int) -> Color:
@@ -473,14 +424,22 @@ func _make_emissive_material(tint: Color, energy: float) -> StandardMaterial3D:
 
 func _make_form_material(tint: Color, energy: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
-	material.albedo_color = tint.darkened(0.48)
-	material.metallic = 0.74
-	material.roughness = 0.20
+	material.albedo_color = tint.darkened(0.26)
+	material.metallic = 0.28
+	material.roughness = 0.42
 	material.emission_enabled = true
 	material.emission = tint
-	material.emission_energy_multiplier = energy
+	material.emission_energy_multiplier = minf(energy, 0.82)
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	material.cull_mode = BaseMaterial3D.CULL_BACK
+	return material
+
+
+func _make_anchor_material() -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color("071025")
+	material.metallic = 0.40
+	material.roughness = 0.72
 	return material
 
 
