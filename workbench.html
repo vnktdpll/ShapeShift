@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShapeShift Gauntlet Workbench</title>
+  <style>
+    :root { color-scheme: dark; --bg:#050713; --panel:#0b1028; --cyan:#39edff; --pink:#ff4cbf; --gold:#ffd058; --muted:#8d9bc4; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter,ui-sans-serif,system-ui,sans-serif; background:radial-gradient(circle at 50% -20%,#18206a 0,#080b1c 42%,var(--bg) 72%); color:#f7f9ff; }
+    main { width:min(1180px,calc(100% - 32px)); margin:0 auto; padding:48px 0 80px; }
+    header { display:grid; grid-template-columns:1fr auto; gap:24px; align-items:end; margin-bottom:28px; }
+    h1 { margin:0; font-size:clamp(36px,6vw,72px); letter-spacing:-.04em; }
+    h1 span { color:var(--cyan); text-shadow:0 0 24px #39edff80; }
+    .status { border:1px solid var(--pink); color:var(--pink); padding:9px 14px; border-radius:999px; font-weight:750; letter-spacing:.12em; }
+    .lede { color:#cbd4f5; max-width:760px; font-size:18px; line-height:1.6; }
+    .grid { display:grid; grid-template-columns:repeat(12,1fr); gap:18px; }
+    .card { grid-column:span 4; border:1px solid #293266; background:linear-gradient(160deg,#101638e8,#080c20e8); border-radius:18px; padding:22px; box-shadow:0 18px 50px #0007; }
+    .card.wide { grid-column:span 8; }
+    .card.full { grid-column:1/-1; }
+    .eyebrow { color:var(--cyan); font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+    .metric { font-size:34px; font-weight:850; margin:8px 0 2px; }
+    .muted { color:var(--muted); }
+    img { display:block; width:100%; border-radius:11px; border:1px solid #34407b; margin-top:16px; }
+    table { width:100%; border-collapse:collapse; margin-top:10px; }
+    th,td { text-align:left; padding:10px 8px; border-bottom:1px solid #252e5c; }
+    th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.09em; }
+    .pass { color:#5effc8; font-weight:750; }
+    .pending { color:var(--gold); font-weight:750; }
+    audio { width:100%; margin-top:12px; }
+    @media(max-width:850px){ .card,.card.wide{grid-column:1/-1} header{grid-template-columns:1fr} .status{width:max-content} }
+  </style>
+</head>
+<body><main>
+  <header><div><div class="eyebrow">Bounded Gauntlet Loop · 2026-08-14</div><h1>SHAPE<span>SHIFT</span></h1></div><div class="status">FINAL · PASS</div></header>
+  <p class="lede">The 2018 flat portrait prototype is now a parser-clean Godot 4.7 3D neon runner. This workbench records direct artifact evidence; critic findings and repairs are appended to <code>GAUNTLET.md</code>.</p>
+  <section class="grid">
+    <article class="card"><div class="eyebrow">Automated checks</div><div class="metric">10,129</div><div class="muted">all passing, including all nine lane/form pairs</div></article>
+    <article class="card"><div class="eyebrow">Fairness simulation</div><div class="metric">10,000</div><div class="muted">seeded judgments, zero unreachable sequences</div></article>
+    <article class="card"><div class="eyebrow">5-minute max-speed soak</div><div class="metric">16.67 ms</div><div class="muted">p95 frame time; 30,220 frames; High quality at forced 30 u/s</div></article>
+    <article class="card wide"><div class="eyebrow">Round 5 · Premium course view</div><img src="docs/evidence/round5-course-initial.png" alt="Direct gameplay capture showing the composed sky, premium road, detailed player and actionable gate"></article>
+    <article class="card"><div class="eyebrow">Measured feel</div><table><tr><th>Contract</th><th>Target</th></tr><tr><td>Lane settle</td><td class="pass">156 ms</td></tr><tr><td>Logical morph</td><td class="pass">same tick</td></tr><tr><td>Visual morph</td><td class="pass">108 ms</td></tr><tr><td>Telegraph</td><td class="pass">≥1.25 s</td></tr><tr><td>Gate pool</td><td class="pass">10 bounded</td></tr></table></article>
+    <article class="card full"><div class="eyebrow">Forced maximum speed · 30 u/s</div><img src="docs/evidence/round5-course-max-speed.png" alt="Maximum-speed direct capture with safe HUD, detailed player, gate hierarchy and composed course"><p class="muted">The actionable gate retains full labels and structure while distant gates collapse to depth cues. The 28 px/22 px HUD safe area remains intact at 2.14× base speed.</p></article>
+    <article class="card full"><div class="eyebrow">Round 4 critic decision</div><h2>Audio target fixed · final visual cohesion targeted</h2><p class="muted">Music and sound impact rose to 8 with no critical or high defect. Round 5 addresses the sole remaining below-threshold category through composed upper infrastructure, richer road/gate/player materials, and a safe-area HUD rebuild.</p></article>
+    <article class="card full"><div class="eyebrow">Round 4 · Direct stereo evidence</div><table><tr><th>Capture</th><th>Peak</th><th>Stereo difference RMS</th></tr><tr><td>Drift</td><td>−11.35 dBFS</td><td>.0259</td></tr><tr><td>Drive</td><td>−11.07 dBFS</td><td>.0318</td></tr><tr><td>Apex</td><td>−10.18 dBFS</td><td>.0397</td></tr><tr><td>Fail / restart</td><td>−11.32 dBFS</td><td>.0267</td></tr></table><p class="muted">Low · Drift</p><audio controls src="docs/evidence/audio-low-drift.wav"></audio><p class="muted">Mid · Drive</p><audio controls src="docs/evidence/audio-mid-drive.wav"></audio><p class="muted">High · Apex</p><audio controls src="docs/evidence/audio-high-apex.wav"></audio><p class="muted">Failure · restart</p><audio controls src="docs/evidence/audio-fail-restart.wav"></audio></article>
+    <article class="card full"><div class="eyebrow">Round 5 · Retention evidence</div><h2>Polish kept only after performance recovered</h2><p class="muted">The first rich visual integration regressed to 53.80 ms p95. Staggered road detail plus allocation-free gate and 100-spark pools restored the five-minute 30 u/s soak to 16.67 ms p95. Restart p95 is 0.985 ms across 20 real results-state cycles.</p></article>
+    <article class="card wide"><div class="eyebrow">Complete loop · Results state</div><img src="docs/evidence/round5-results.png" alt="Direct capture of the polished failure screen with instant restart and accessibility controls"></article>
+    <article class="card"><div class="eyebrow">Round 5 critic</div><div class="metric pass">PASS</div><div class="muted">9 · 8 · 9 · 8 · 8 · 8 · 7 · 8 · 9 · 8<br>No critical/high defect; visual gap materially fixed.</div></article>
+    <article class="card full"><div class="eyebrow">Round 6 · Final cohesion</div><h2 class="pass">Acceptance complete</h2><p class="muted">Second fresh critic: 9 · 8 · 9 · 8 · 8 · 8 · 8 · 8 · 9 · 8. No material gap and no critical/high defect. Two consecutive independent passes, clean launch/tests/loop, and the five-minute soak satisfy the bounded stopping condition.</p></article>
+  </section>
+</main></body></html>

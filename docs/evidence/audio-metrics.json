@@ -1,0 +1,71 @@
+{
+	"bpm": 136,
+	"captures": [
+		{
+			"duration_seconds": 7.0,
+			"frames": 308700,
+			"mode": "low",
+			"peak": 0.270681440830231,
+			"peak_dbfs": -11.3508304088849,
+			"rms": 0.038022817826642,
+			"rms_dbfs": -28.399114024417,
+			"section": 0,
+			"stereo_correlation": 0.767954145073237,
+			"stereo_difference_rms": 0.0259027696885308
+		},
+		{
+			"duration_seconds": 7.0,
+			"frames": 308700,
+			"mode": "mid",
+			"peak": 0.279529184103012,
+			"peak_dbfs": -11.0714568622963,
+			"rms": 0.040941970333884,
+			"rms_dbfs": -27.7566252146415,
+			"section": 1,
+			"stereo_correlation": 0.698302247335396,
+			"stereo_difference_rms": 0.0318031234236783
+		},
+		{
+			"duration_seconds": 7.0,
+			"frames": 308700,
+			"mode": "high",
+			"peak": 0.309584528207779,
+			"peak_dbfs": -10.1844150348401,
+			"rms": 0.0458285524547926,
+			"rms_dbfs": -26.7772772041439,
+			"section": 2,
+			"stereo_correlation": 0.625193713552863,
+			"stereo_difference_rms": 0.039678438337308
+		},
+		{
+			"duration_seconds": 6.0,
+			"frames": 264600,
+			"mode": "fail_restart",
+			"peak": 0.271565020084381,
+			"peak_dbfs": -11.3225234332425,
+			"rms": 0.0401602467709727,
+			"rms_dbfs": -27.9240725452774,
+			"section": 2,
+			"stereo_correlation": 0.778303817507321,
+			"stereo_difference_rms": 0.0267417902437814
+		}
+	],
+	"events": [
+		"lane",
+		"morph cube/pyramid/sphere",
+		"perfect",
+		"milestone",
+		"near miss",
+		"crash",
+		"menu",
+		"restart"
+	],
+	"peak_limit_dbfs": -1.0,
+	"renderer": "ReactiveAudioEngine deterministic 16-bit stereo PCM",
+	"sample_rate": 44100,
+	"sections": [
+		"0 Drift: sparse broken-beat / bass / wide pad",
+		"1 Drive: stabs and pulse",
+		"2 Apex: 16th hats, arpeggio and ride"
+	]
+}
