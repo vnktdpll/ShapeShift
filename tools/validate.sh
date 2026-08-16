@@ -23,6 +23,8 @@ echo "[VALIDATE] deterministic gameplay checks"
 "$GODOT_BIN" --headless --path "$ROOT" --script res://tests/test_runner.gd
 echo "[VALIDATE] presentation/audio smoke"
 "$GODOT_BIN" --headless --path "$ROOT" --script res://tools/audio_smoke.gd
+echo "[VALIDATE] branded boot transition smoke"
+"$GODOT_BIN" --headless --path "$ROOT" --script res://tools/boot_smoke.gd
 echo "[VALIDATE] integrated runtime smoke"
 "$GODOT_BIN" --headless --path "$ROOT" --script res://tools/runtime_smoke.gd 2>&1 | tee "$RUNTIME_LOG"
 if rg -q 'ERROR:|SCRIPT ERROR:|Parse Error:' "$RUNTIME_LOG"; then

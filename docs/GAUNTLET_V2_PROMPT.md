@@ -102,6 +102,26 @@ user changes.
      no internal cage/ring/line decoration obscuring the form.
    - Align the pause control horizontally with the score card on the top HUD row.
 
+6. **Round 6 — credible façades, exact lane feedback, strict one-attempt play,
+   and branded startup**
+   - Replace thin façade light strokes with recognizable window modules: bounded
+     panes or small grids with visible width and height, restrained emissive
+     interiors, and non-uniform occupancy. Improve the second and third building
+     columns with setbacks, roof/crown silhouettes, façade divisions, and window
+     rhythm so they read as actual buildings rather than blank grey blocks.
+     Preserve three moving depth belts, staggered recycling, the central decision
+     cone, subdued background hierarchy, and the existing performance gate.
+   - The short white platform light shown on a correct match must appear in the
+     exact matched/player lane. It may never default to the center lane. Prove
+     left, center, and right origins under translated hierarchies.
+   - One attempt means every incorrect target result is immediately terminal.
+     There is no hidden near-miss life and no sequence of multiple mistakes before
+     results. A correct exact match is the only survivable judgment.
+   - Show the supplied 4:3 VN Games artwork every time the application opens.
+     Use the project-local `assets/branding/splash-4x3.png`, preserve its 4:3
+     composition without distortion, and transition automatically into the game.
+     Command-line test/evidence paths must remain deterministic.
+
 ## Gauntlet protocol
 
 Use a bounded builder -> integration -> fresh critic -> repair loop. Builders

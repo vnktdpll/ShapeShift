@@ -1,14 +1,14 @@
 {
 	"active_gate_nodes": 10,
 	"engine": "4.7.1-stable (official)",
-	"frames": 2552,
-	"p50_ms": 11.1111111111111,
-	"p95_ms": 16.3265714285716,
+	"frames": 4194,
+	"p50_ms": 6.896,
+	"p95_ms": 6.94444444444444,
 	"p95_target_ms": 16.7,
-	"p99_ms": 22.2358888888889,
+	"p99_ms": 12.7502222222222,
 	"passed": true,
 	"quality": 2,
 	"resolution": "1280x720",
-	"seconds": 30.0077390000003,
+	"seconds": 30.006138666668,
 	"speed_mode": "forced_maximum"
 }

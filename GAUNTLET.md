@@ -469,3 +469,58 @@ principle-only references: no external assets or copied compositions.
 - Stop decision: two consecutive fresh critics pass every Round 5 category at
   8 or higher. The Gauntlet stops; the remaining non-blocking caution is the
   0.373 ms p95 margin before any further visual density is added.
+
+### Round 6 — façade credibility, exact lane light, strict one-attempt play, and splash
+
+- Baseline user evidence shows foreground windows as thin strokes and the second
+  and third city columns as blank slab silhouettes. The same play review reports
+  a white correct-match platform light appearing in the center regardless of the
+  matched lane, and the survivable partial-match judgment reads as three lives.
+- Measurable target: recognizable pane-shaped windows and articulated mid/far
+  towers; left/center/right assertions for the pooled match light; every
+  non-perfect judgment reaches results after the first mistake; and the supplied
+  1448×1086 VN Games image appears undistorted on every normal application boot.
+- Acceptance retains one visible target, score-only active HUD, bounded node/light/
+  particle pools, parser and deterministic validation, runtime restart checks,
+  and High-quality 1280×720 forced-maximum p95 at or below 16.7 ms.
+- Façade builder: replaced close light strokes with 1,088 variably occupied pane
+  modules on front and inward-facing walls. Mid/far towers now have lower shafts,
+  inset upper setbacks, crowns, ribs, stepped connectors, and occasional spires.
+  Shared vertex-colored MultiMeshes keep the accepted version at the original
+  414-node/4-light/36-particle budget and one draw per mid/far chunk.
+- Rejected the first two-material façade form after its 30-second forced-maximum
+  p95 regressed to 25.0 ms. The consolidated retained form measured 6.896 ms p50,
+  6.944 ms p95, and 12.750 ms p99 at 1280×720 High quality.
+- Gameplay builder: the pooled judgment light is retargeted on every configure to
+  x = −3.1/0/+3.1 for left/center/right. Translated-hierarchy tests verify local
+  and world positions without node growth. Judgment is now binary: exact match is
+  `PERFECT`; every lane or form mismatch is `MISS` and immediately terminal.
+- Splash builder: normal application launches show the exact supplied 1448×1086
+  PNG for 1.6 seconds with centered aspect-fit rendering and a 0.22-second fade,
+  then transition to `main.tscn`. Godot's immediate boot image uses the same asset;
+  automated flags skip the timed hold. `BOOT_SPLASH_PASS` verifies resource,
+  dimensions, aspect mode, and live transition.
+- Integrated validation passes parser/import, 20,189 deterministic checks,
+  presentation/audio, branded boot, moving-city façade budgets, strict one-life
+  restart, and runtime smoke. Direct evidence:
+  `v2-round6-facades-{initial,max-speed}.png` and
+  `v2-round6-branded-splash.png` under `docs/evidence/`.
+- Evidence-only captures hold the otherwise 120 ms production light for one
+  rendered frame: `v2-round6-match-light-{left,right}.png`. Logged world
+  coordinates pair left player/light at −3.0/−3.1 and right at +3.0/+3.1;
+  the 0.1-unit difference is the established player-versus-target lane spacing,
+  and both pools visibly sit beneath the correct outer-lane player.
+- Fresh critic: **PASS**. Scores: façade windows 8, building articulation 8,
+  lane feedback 10, strict one-life 10, splash 10, gameplay readability 9,
+  technical boundedness 10, and performance 10. No material requirement is
+  missing. The critic's non-blocking improvement is shallow window-frame/recess
+  depth, contingent on preserving the current readability and performance margin.
+- Final stopping critic: **PASS**. Scores: windows 8, articulation 8, lane
+  feedback 10, strict one-life 10, splash 10, readability 9, boundedness 10,
+  and performance 8. It independently reproduced validation and a passing
+  clean-copy 15.364 ms p95 forced-maximum run.
+- Stop decision: two consecutive fresh critics find no missing material behavior
+  and every category scores at least 8. Round 6 stops. Non-blocking limitations:
+  windows remain intentionally stylized flat panes, and one additional clean-copy
+  benchmark reached 17.289 ms p95, indicating host/compositor variance despite
+  the frozen evidence run's 6.944 ms p95 and unchanged bounded budgets.

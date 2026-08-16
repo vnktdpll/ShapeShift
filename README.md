@@ -17,6 +17,11 @@ and run the project, or launch directly:
 "/Users/vnktdpl/Downloads/Godot 2.app/Contents/MacOS/Godot" --path .
 ```
 
+Normal launches open on the supplied 4:3 VN Games artwork, preserve its aspect
+ratio on any window shape, and then transition automatically into the game.
+Automated test, benchmark, and evidence flags skip the timed hold so validation
+remains deterministic.
+
 The application bundle happens to be named `Godot 2.app`, but its executable is
 Godot 4.7.1. Any compatible stable Godot 4.7 executable can be substituted.
 
@@ -51,9 +56,8 @@ high score persist in `user://shapeshift_profile.json`.
 
 - Match both the target lane and its single displayed 3D form for a Perfect
   judgment. Only the nearest target is visible and actionable.
-- Matching only lane or form is a survivable Near Miss with reduced points.
-- A full miss immediately ends the one-attempt run. Restart restores a fresh run
-  in place rather than loading the scene again.
+- Only an exact lane-and-form match survives. Any mismatch immediately ends the
+  one-attempt run; restart restores a fresh run in place.
 - The first six targets teach center match, left/right movement, and both
   non-default forms through play.
 - Every five consecutive successful judgments raises the multiplier, up to ×8.
@@ -72,9 +76,11 @@ high score persist in `user://shapeshift_profile.json`.
 - `TrackFairnessSolver`: pure reachability checks used by the 10,000-gate test.
 - `ScoreSystem` and `ProfileStore`: score/combo/multiplier and JSON persistence.
 - `NeonCourseEnvironment`, `ArcadeCameraRig`, and `ArcadeFxDirector`: independently
-  recycled close/mid/far city belts with depth-scaled motion, four bounded street
-  lights, 36 rain/haze particles, bounded FOV/bank/shake, and lane-correct pooled
-  interaction bursts.
+  recycled close/mid/far city belts with pane windows and articulated towers,
+  four bounded street lights, 36 rain/haze particles, bounded FOV/bank/shake,
+  and lane-correct pooled interaction bursts.
+- `BootSplash`: aspect-fitted 4:3 VN Games artwork, deterministic test/evidence
+  bypasses, and an automatic transition into the real main scene.
 - `ReactiveAudioEngine`: original real-time percussion, bass, harmony, pulse, and
   lead synthesis plus event SFX on separate compressed Music/SFX buses.
 - `HUDController`: score-only gameplay HUD, icon-only touch controls, menus, audio,

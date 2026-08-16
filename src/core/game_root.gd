@@ -34,12 +34,15 @@ var _restart_benchmark_count: int = 0
 var _controls_evidence := false
 var _evidence_delay := 9.0
 var _evidence_form := -1
+var _evidence_match_lane := -1
 
 func _ready() -> void:
 	_build_runtime()
 	_parse_command_line()
 	_apply_settings()
-	if _controls_evidence:
+	if _evidence_match_lane >= 0:
+		call_deferred("_capture_match_light_evidence")
+	elif _controls_evidence:
 		call_deferred("_capture_controls_evidence")
 	elif _autopilot or not _evidence_path.is_empty() or _benchmark_target > 0.0:
 		call_deferred("start_run", true)
@@ -268,7 +271,8 @@ func _on_gate_judged(kind: GameEvents.JudgmentKind, _base_points: int, gate_sequ
 	events.gate_judged.emit(kind, awarded)
 	events.combo_changed.emit(score_system.combo, score_system.multiplier)
 	if judgment_is_terminal(kind):
-		# ShapeShift is a one-attempt run: the first full miss is terminal.
+		# ShapeShift is a strict one-attempt run: anything short of a perfect
+		# lane/form match ends the run immediately.
 		player.play_damage_feedback()
 		camera_rig.impulse_shake(0.18, 0.12)
 		fail_run()
@@ -282,7 +286,7 @@ func _on_gate_judged(kind: GameEvents.JudgmentKind, _base_points: int, gate_sequ
 
 
 static func judgment_is_terminal(kind: GameEvents.JudgmentKind) -> bool:
-	return kind == GameEvents.JudgmentKind.MISS
+	return kind != GameEvents.JudgmentKind.PERFECT
 
 func _on_score_changed(score: int, combo: int, multiplier: int) -> void:
 	hud.update_score(score, combo, multiplier)
@@ -319,6 +323,11 @@ func _parse_command_line() -> void:
 				"cube": _evidence_form = GameEvents.ShapeKind.CUBE
 				"pyramid": _evidence_form = GameEvents.ShapeKind.PYRAMID
 				"sphere": _evidence_form = GameEvents.ShapeKind.SPHERE
+		elif argument.begins_with("--evidence-match-lane="):
+			match argument.trim_prefix("--evidence-match-lane=").to_lower():
+				"left", "0": _evidence_match_lane = 0
+				"center", "centre", "1": _evidence_match_lane = 1
+				"right", "2": _evidence_match_lane = 2
 		elif argument.begins_with("--benchmark="):
 			_benchmark_target = maxf(1.0, argument.trim_prefix("--benchmark=").to_float())
 		elif argument == "--max-speed":
@@ -328,13 +337,57 @@ func _parse_command_line() -> void:
 		elif argument.begins_with("--restart-benchmark="):
 			_restart_benchmark_count = maxi(1, argument.trim_prefix("--restart-benchmark=").to_int())
 			_autopilot = true
-	if not _evidence_path.is_empty() and not _crash_for_evidence:
+	if not _evidence_path.is_empty() and not _crash_for_evidence and _evidence_match_lane < 0:
 		get_tree().create_timer(_evidence_delay).timeout.connect(_capture_and_quit)
 
 
 func _capture_controls_evidence() -> void:
 	hud._open_controls()
 	await get_tree().create_timer(0.5).timeout
+	await _capture_and_quit()
+
+
+func _capture_match_light_evidence() -> void:
+	# Evidence-only deterministic staging: exercise the same successful-judgment
+	# handler and pooled gate light as live play, but hold the course at impact so
+	# the 120 ms lane-local flash can be captured reliably. Normal play never
+	# enters this path because it requires an explicit command-line flag.
+	start_run(true)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	player.reset_run(_evidence_match_lane, GameEvents.ShapeKind.CUBE)
+	player.set_active(true)
+	track.set_player_state(_evidence_match_lane, GameEvents.ShapeKind.CUBE)
+	track.stop_course()
+	var evidence_gate: TrackGate3D = null
+	for child: Node in track.get_children():
+		if child is TrackGate3D and (child as TrackGate3D).visual_priority() == TrackGate3D.VisualPriority.FOCAL:
+			evidence_gate = child as TrackGate3D
+			break
+	if evidence_gate == null:
+		for child: Node in track.get_children():
+			if child is TrackGate3D:
+				evidence_gate = child as TrackGate3D
+				break
+	if evidence_gate == null:
+		push_error("Match-light evidence could not locate a pooled gate")
+		await _graceful_quit(1)
+		return
+	var evidence_spec := TrackGateSpec.new(
+		777000 + _evidence_match_lane,
+		TrackGateSpec.Pattern.SINGLE_APERTURE,
+		[Vector2i(_evidence_match_lane, GameEvents.ShapeKind.CUBE)],
+		0.0,
+		1.5
+	)
+	evidence_gate.configure(evidence_spec)
+	evidence_gate.position = Vector3.ZERO
+	evidence_gate.visible = true
+	evidence_gate.set_visual_priority(TrackGate3D.VisualPriority.SUPPRESSED, 0.0)
+	_on_gate_judged(GameEvents.JudgmentKind.PERFECT, 100, evidence_spec.sequence)
+	evidence_gate.hold_judgment_flash_for_evidence(true)
+	print("MATCH_LIGHT_EVIDENCE lane=%d player=%s light=%s" % [_evidence_match_lane, str(player.interaction_world_position()), str(evidence_gate.judgment_light_world_position())])
+	await RenderingServer.frame_post_draw
 	await _capture_and_quit()
 
 func _capture_and_quit() -> void:

@@ -115,6 +115,14 @@ func deterministic_validation(count: int = 10000, seed: int = 7719) -> Dictionar
 	return TrackFairnessSolver.simulate_judgments(count, seed)
 
 
+static func classify_judgment(gate_spec: TrackGateSpec, player_lane: int, player_shape: GameEvents.ShapeKind) -> GameEvents.JudgmentKind:
+	# One-attempt rules are intentionally binary: only an exact lane/form pair
+	# survives. Partial matches are misses, never a hidden extra life.
+	if gate_spec != null and gate_spec.accepts(player_lane, player_shape):
+		return GameEvents.JudgmentKind.PERFECT
+	return GameEvents.JudgmentKind.MISS
+
+
 func _spawn_next(speed: float) -> void:
 	if _pool.is_empty():
 		return
@@ -174,14 +182,8 @@ func _emit_telegraph(gate: TrackGate3D) -> void:
 func _judge(gate: TrackGate3D) -> void:
 	if not _active.has(gate):
 		return
-	var kind: GameEvents.JudgmentKind = GameEvents.JudgmentKind.MISS
-	var points: int = 0
-	if gate.spec.accepts(_player_lane, _player_shape):
-		kind = GameEvents.JudgmentKind.PERFECT
-		points = 100
-	elif gate.spec.has_lane(_player_lane) or gate.spec.has_shape(_player_shape):
-		kind = GameEvents.JudgmentKind.NEAR_MISS
-		points = 25
+	var kind := classify_judgment(gate.spec, _player_lane, _player_shape)
+	var points: int = 100 if kind == GameEvents.JudgmentKind.PERFECT else 0
 	# Hide the completed instruction before promoting its successor. Judgment
 	# feedback comes from the preallocated light and shared particle pool, so two
 	# target shapes can never overlap during the hand-off.

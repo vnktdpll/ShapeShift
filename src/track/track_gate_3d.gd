@@ -74,6 +74,14 @@ func visible_target_count() -> int:
 	return count
 
 
+func judgment_light_local_position() -> Vector3:
+	return _judgment_light.position if _judgment_light != null else Vector3.ZERO
+
+
+func judgment_light_world_position() -> Vector3:
+	return _judgment_light.global_position if _judgment_light != null else global_position
+
+
 func mark_telegraphed() -> void:
 	_telegraphed = true
 
@@ -94,6 +102,17 @@ func play_judgment_flash(success: bool) -> void:
 	_judgment_tween = create_tween()
 	_judgment_tween.tween_property(_judgment_light, "light_energy", 0.0, 0.12)
 	_judgment_tween.tween_callback(_judgment_light.set_visible.bind(false))
+
+
+func hold_judgment_flash_for_evidence(success: bool) -> void:
+	# The CLI capture has no exposure time across the production 120 ms tween.
+	# Hold the same pooled light at a photographable energy for one rendered
+	# frame; only GameRoot's explicit evidence path calls this method.
+	play_judgment_flash(success)
+	if _judgment_tween != null and _judgment_tween.is_valid():
+		_judgment_tween.kill()
+	_judgment_light.light_energy = 6.0
+	_judgment_light.visible = true
 
 
 func _build_static_visuals() -> void:
@@ -130,6 +149,9 @@ func _apply_spec() -> void:
 	# leaves the lower silhouette just above the road instead of clipping it into
 	# a caret/semicircle at decision distance.
 	_target_root.position = Vector3(LANE_X[clampi(target.x, 0, 2)], TARGET_Y, 0.0)
+	# The pooled flash belongs to the judged target, not the gate root. Retarget
+	# it on every configure so recycled left/right gates never flash center lane.
+	_judgment_light.position = Vector3(LANE_X[clampi(target.x, 0, 2)], 0.22, 0.0)
 	_shape_roots[clampi(target.y, 0, 2)].visible = true
 	_apply_visual_priority()
 

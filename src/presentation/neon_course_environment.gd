@@ -39,10 +39,9 @@ var _road_panel_material: StandardMaterial3D
 var _sky_accent_material: StandardMaterial3D
 var _star_material: StandardMaterial3D
 var _warm_marker_material: StandardMaterial3D
-var _city_far_material: StandardMaterial3D
-var _city_mid_material: StandardMaterial3D
 var _city_near_material: StandardMaterial3D
 var _city_window_material: StandardMaterial3D
+var _city_colored_material: StandardMaterial3D
 var _city_magenta_material: StandardMaterial3D
 var _atmosphere_particles: GPUParticles3D
 var _city_wrap_count: int = 0
@@ -52,6 +51,10 @@ var _far_city_wrap_count: int = 0
 var _last_mid_city_wrap_count: int = 0
 var _last_far_city_wrap_count: int = 0
 var _bounded_environment_node_count: int = 0
+var _close_window_pane_count: int = 0
+var _mid_window_pane_count: int = 0
+var _far_window_pane_count: int = 0
+var _mid_far_articulation_count: int = 0
 
 const REAL_CITY_LIGHT_COUNT := 4
 const ATMOSPHERE_PARTICLE_COUNT := 36
@@ -70,6 +73,7 @@ const FAR_CITY_CHUNK_SPACING := 18.0
 const FAR_CITY_CHUNK_LOOP_LENGTH := FAR_CITY_CHUNK_SPACING * FAR_CITY_CHUNK_COUNT
 const FAR_CITY_CHUNK_FRONT_Z := 20.0
 const FAR_CITY_SCROLL_FACTOR := 0.30
+const MIN_WINDOW_PANE_HEIGHT := 0.30
 
 
 func _ready() -> void:
@@ -94,6 +98,10 @@ func build() -> void:
 	_far_city_wrap_count = 0
 	_last_mid_city_wrap_count = 0
 	_last_far_city_wrap_count = 0
+	_close_window_pane_count = 0
+	_mid_window_pane_count = 0
+	_far_window_pane_count = 0
+	_mid_far_articulation_count = 0
 	_course_root = Node3D.new()
 	_course_root.name = "ReactiveCourseDressing"
 	add_child(_course_root)
@@ -234,6 +242,29 @@ func bounded_environment_node_count() -> int:
 	return _bounded_environment_node_count
 
 
+## Public, deterministic presentation instrumentation. These counts describe
+## preallocated façade modules rather than renderer-dependent visibility, so the
+## runtime smoke can guard recognizable windows and articulated depth tiers.
+func close_window_pane_count() -> int:
+	return _close_window_pane_count
+
+
+func mid_window_pane_count() -> int:
+	return _mid_window_pane_count
+
+
+func far_window_pane_count() -> int:
+	return _far_window_pane_count
+
+
+func mid_far_articulation_count() -> int:
+	return _mid_far_articulation_count
+
+
+func minimum_window_pane_height() -> float:
+	return MIN_WINDOW_PANE_HEIGHT
+
+
 func _descendant_count(parent: Node) -> int:
 	var count := 0
 	for child in parent.get_children():
@@ -307,11 +338,16 @@ func _build_material_palette() -> void:
 	# The city is rendered from a handful of shared materials and MultiMeshes.
 	# Its values stay below the interactive cyan/pink palette, so the richer
 	# silhouette never steals the runner's decision cone.
-	_city_far_material = _unshaded_emissive_material(Color("1d376b"), 0.12)
-	_city_mid_material = _unshaded_emissive_material(Color("2b5798"), 0.18)
 	_city_near_material = _dark_material(Color("09132d"), 0.48, 0.52)
-	_city_window_material = _unshaded_emissive_material(Color("62bdff"), 0.62)
-	_city_magenta_material = _unshaded_emissive_material(Color("f35bc4"), 0.82)
+	_city_window_material = _unshaded_emissive_material(Color("62bdff"), 0.50)
+	# Mid/far bodies and panes share one vertex-colored material. Per-instance
+	# color preserves the window contrast while keeping each moving depth chunk
+	# to one draw instead of doubling the background draw-call budget.
+	_city_colored_material = StandardMaterial3D.new()
+	_city_colored_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_city_colored_material.albedo_color = Color.WHITE
+	_city_colored_material.vertex_color_use_as_albedo = true
+	_city_magenta_material = _unshaded_emissive_material(Color("d94ba9"), 0.64)
 
 
 func _create_key_light() -> void:
@@ -357,20 +393,49 @@ func _create_mid_city_chunks(parent: Node3D) -> void:
 		chunk.position.z = 8.0 - float(index) * MID_CITY_CHUNK_SPACING
 		parent.add_child(chunk)
 		_mid_city_scroll_nodes.append(chunk)
-		var geometry: Array[Transform3D] = []
+		var masses: Array[Transform3D] = []
+		var windows: Array[Transform3D] = []
 		for side in [-1.0, 1.0]:
 			for tier in 2:
 				var height := 8.4 + float((index * 3 + tier * 2) % 5) * 1.38
 				var width := 2.5 + float((index + tier) % 3) * 0.58
 				var x: float = side * (11.8 + float(tier) * 3.25 + float(index % 2) * 0.42)
 				var local_z := -float(tier) * 4.4
-				geometry.append(_box_transform(Vector3(width, height, 4.2), Vector3(x, height * 0.5 - 0.45, local_z)))
-				# Subdued same-material bands add inhabited scale without adding a
-				# second emissive draw or competing with the actionable shape.
+				# A broad lower shaft, inset upper setback, crown and vertical ribs
+				# create a readable tower silhouette instead of a single grey slab.
+				var lower_height := height * 0.69
+				var upper_height := height - lower_height
+				masses.append(_box_transform(Vector3(width, lower_height, 4.2), Vector3(x, lower_height * 0.5 - 0.45, local_z)))
+				masses.append(_box_transform(Vector3(width * 0.72, upper_height, 3.35), Vector3(x, lower_height - 0.45 + upper_height * 0.5, local_z - 0.18)))
+				masses.append(_box_transform(Vector3(width * 0.86, 0.28, 3.62), Vector3(x, height - 0.30, local_z - 0.18)))
+				for rib_side in [-1.0, 1.0]:
+					masses.append(_box_transform(Vector3(0.10, lower_height * 0.88, 0.10), Vector3(x + rib_side * width * 0.38, lower_height * 0.50, local_z + 2.14)))
+				# Pane modules have both visible width and height. Deterministic gaps
+				# make occupancy feel inhabited without becoming a bright checkerboard.
+				for row in 4:
+					for column in 2:
+						if (index + tier * 2 + row * 3 + column + (0 if side < 0.0 else 1)) % 5 == 0:
+							continue
+						var pane_x := x + (float(column) - 0.5) * width * 0.42
+						windows.append(_box_transform(Vector3(width * 0.24, 0.34, 0.09), Vector3(pane_x, 1.25 + float(row) * 1.34, local_z + 2.16)))
+						_mid_window_pane_count += 1
+				# The inner side wall is often the largest surface from the runner's
+				# perspective, so it receives a second, dimmer-looking pane rhythm
+				# (same low-energy material) rather than remaining a blank grey flank.
 				for row in 3:
-					geometry.append(_box_transform(Vector3(width * (0.42 + 0.08 * float(row % 2)), 0.075, 0.055), Vector3(x, 2.1 + float(row) * 1.55, local_z + 2.13)))
-			geometry.append(_box_transform(Vector3(5.2, 0.46, 2.8), Vector3(side * (12.7 + float(index % 2)), 5.4 + float(index % 3) * 0.58, -6.0)))
-		_add_box_multimesh(chunk, "MidCityGeometry", geometry, _city_mid_material)
+					for depth_column in 2:
+						if (index + tier + row + depth_column * 2) % 4 == 0:
+							continue
+						var pane_z := local_z + (float(depth_column) - 0.5) * 1.72
+						windows.append(_box_transform(Vector3(0.09, 0.34, 0.62), Vector3(x - side * (width * 0.5 + 0.03), 1.58 + float(row) * 1.48, pane_z)))
+						_mid_window_pane_count += 1
+				_mid_far_articulation_count += 5
+			# A stepped connector/roof silhouette breaks repetition between the
+			# two depth columns while remaining outside the central decision cone.
+			masses.append(_box_transform(Vector3(5.2, 0.46, 2.8), Vector3(side * (12.7 + float(index % 2)), 5.4 + float(index % 3) * 0.58, -6.0)))
+			masses.append(_box_transform(Vector3(2.3, 0.34, 2.2), Vector3(side * (13.4 + float(index % 2)), 5.78 + float(index % 3) * 0.58, -6.1)))
+			_mid_far_articulation_count += 2
+		_add_colored_box_multimesh(chunk, "MidCityArticulatedFacades", masses, windows, Color("172d51"), Color("477fa6"))
 
 
 func _create_far_city_chunks(parent: Node3D) -> void:
@@ -380,22 +445,44 @@ func _create_far_city_chunks(parent: Node3D) -> void:
 		chunk.position.z = 15.0 - float(index) * FAR_CITY_CHUNK_SPACING
 		parent.add_child(chunk)
 		_far_city_scroll_nodes.append(chunk)
-		var geometry: Array[Transform3D] = []
+		var masses: Array[Transform3D] = []
+		var windows: Array[Transform3D] = []
 		for side in [-1.0, 1.0]:
 			for tier in 3:
 				var height := 11.0 + float((index * 7 + tier * 3) % 7) * 1.48
 				var width := 2.8 + float((index + tier) % 3) * 0.66
 				var x: float = side * (17.0 + float(tier) * 4.1 + float((index * 2) % 3) * 0.72)
 				var local_z := -float(tier) * 4.8
-				geometry.append(_box_transform(Vector3(width, height, 3.2), Vector3(x, height * 0.5 - 0.55, local_z)))
-				geometry.append(_box_transform(Vector3(width * 0.52, 0.065, 0.05), Vector3(x, height * 0.61, local_z + 1.63)))
-				geometry.append(_box_transform(Vector3(width * 0.38, 0.055, 0.05), Vector3(x, height * 0.78, local_z + 1.63)))
-		_add_box_multimesh(chunk, "FarCityGeometry", geometry, _city_far_material)
+				var lower_height := height * 0.72
+				var upper_height := height - lower_height
+				masses.append(_box_transform(Vector3(width, lower_height, 3.2), Vector3(x, lower_height * 0.5 - 0.55, local_z)))
+				masses.append(_box_transform(Vector3(width * 0.67, upper_height, 2.55), Vector3(x, lower_height - 0.55 + upper_height * 0.5, local_z - 0.12)))
+				var crown_width := width * (0.42 + 0.08 * float((index + tier) % 3))
+				masses.append(_box_transform(Vector3(crown_width, 0.38, 2.28), Vector3(x, height - 0.28, local_z - 0.12)))
+				# Short rooftop spires give the far belt a genuine skyline rhythm.
+				if (index + tier) % 2 == 0:
+					masses.append(_box_transform(Vector3(0.12, 1.35, 0.12), Vector3(x, height + 0.50, local_z - 0.12)))
+				for row in 5:
+					for column in 2:
+						if (index * 2 + tier + row + column * 3 + (0 if side < 0.0 else 1)) % 6 <= 1:
+							continue
+						var pane_x := x + (float(column) - 0.5) * width * 0.40
+						windows.append(_box_transform(Vector3(width * 0.22, 0.30, 0.07), Vector3(pane_x, 1.42 + float(row) * 1.65, local_z + 1.64)))
+						_far_window_pane_count += 1
+				for row in 4:
+					for depth_column in 2:
+						if (index + tier * 2 + row * 3 + depth_column) % 5 <= 1:
+							continue
+						var pane_z := local_z + (float(depth_column) - 0.5) * 1.18
+						windows.append(_box_transform(Vector3(0.07, 0.30, 0.48), Vector3(x - side * (width * 0.5 + 0.025), 1.66 + float(row) * 1.76, pane_z)))
+						_far_window_pane_count += 1
+				_mid_far_articulation_count += 4 if (index + tier) % 2 == 0 else 3
+		_add_colored_box_multimesh(chunk, "FarCityArticulatedFacades", masses, windows, Color("142744"), Color("355878"))
 
 
 func _create_close_city_chunk(chunk: Node3D, index: int) -> void:
-	# Three MultiMeshes per chunk retain the original close-city density at a
-	# bounded draw cost: matte masses, cyan habitation strips, and magenta/warm
+	# Three MultiMeshes per chunk retain close-city density at a bounded draw
+	# cost: matte masses, cyan window panes, and magenta/warm
 	# accents. All geometry remains outside x=5.8 so target/lane silhouettes win.
 	var masses: Array[Transform3D] = []
 	var cyan_details: Array[Transform3D] = []
@@ -409,12 +496,23 @@ func _create_close_city_chunk(chunk: Node3D, index: int) -> void:
 		# without spanning the central gameplay cone.
 		masses.append(_box_transform(Vector3(4.2, 0.32, 3.4), Vector3(side * (7.9 + float(index % 2) * 0.5), 8.1 + float(index % 2) * 1.5, -3.5)))
 		masses.append(_box_transform(Vector3(width * 0.58, 1.42, 0.13), Vector3(x - side * width * 0.08, 5.0 + float(index % 2) * 1.45, 3.08)))
+		for row in 6:
+			for column in 3:
+				if (index * 2 + row * 3 + column + (0 if side < 0.0 else 1)) % 5 == 0:
+					continue
+				var pane_x := x + (float(column) - 1.0) * width * 0.25
+				cyan_details.append(_box_transform(Vector3(width * 0.17, 0.42, 0.08), Vector3(pane_x, 1.25 + float(row) * 1.28, 3.05)))
+				_close_window_pane_count += 1
 		for row in 5:
-			var strip_width := width * (0.32 + 0.08 * float((row + index) % 3))
-			cyan_details.append(_box_transform(Vector3(strip_width, 0.10, 0.07), Vector3(x - side * width * 0.12, 1.55 + float(row) * 1.32, 3.04)))
-		cyan_details.append(_box_transform(Vector3(width * 0.34, 0.11, 0.07), Vector3(x, 5.48 + float(index % 2) * 1.45, 3.16)))
-		magenta_details.append(_box_transform(Vector3(0.12, height * 0.58, 0.09), Vector3(x - side * width * 0.31, height * 0.52, 3.05)))
-		magenta_details.append(_box_transform(Vector3(2.9, 0.075, 0.12), Vector3(side * (7.62 + float(index % 2) * 0.5), 7.89 + float(index % 2) * 1.5, -1.78)))
+			for depth_column in 3:
+				if (index + row * 2 + depth_column + (0 if side < 0.0 else 1)) % 5 <= 1:
+					continue
+				var pane_z := (float(depth_column) - 1.0) * 1.28
+				cyan_details.append(_box_transform(Vector3(0.08, 0.40, 0.64), Vector3(x - side * (width * 0.5 + 0.03), 1.52 + float(row) * 1.38, pane_z)))
+				_close_window_pane_count += 1
+		# Compact, filled sign panels replace the former edge-to-edge neon lines.
+		magenta_details.append(_box_transform(Vector3(width * 0.30, 1.05, 0.10), Vector3(x - side * width * 0.25, 5.10 + float(index % 2) * 1.20, 3.07)))
+		magenta_details.append(_box_transform(Vector3(1.58, 0.44, 0.13), Vector3(side * (7.62 + float(index % 2) * 0.5), 7.89 + float(index % 2) * 1.5, -1.78)))
 	# Four of the five chunks carry one complete streetlamp assembly. The light is
 	# a child of the same chunk as its mast/emitter, preserving exact coherence.
 	if index < REAL_CITY_LIGHT_COUNT:
@@ -434,7 +532,7 @@ func _create_close_city_chunk(chunk: Node3D, index: int) -> void:
 		light.shadow_enabled = false
 		chunk.add_child(light)
 	_add_box_multimesh(chunk, "FacadeMasses", masses, _city_near_material)
-	_add_box_multimesh(chunk, "FacadeCyanDetails", cyan_details, _city_window_material)
+	_add_box_multimesh(chunk, "FacadeWindowPanes", cyan_details, _city_window_material)
 	_add_box_multimesh(chunk, "FacadeMagentaDetails", magenta_details, _city_magenta_material)
 
 
@@ -498,6 +596,34 @@ func _add_box_multimesh(parent: Node3D, node_name: String, transforms: Array[Tra
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	node.multimesh = instances
 	node.material_override = material
+	parent.add_child(node)
+
+
+func _add_colored_box_multimesh(parent: Node3D, node_name: String, masses: Array[Transform3D], windows: Array[Transform3D], mass_color: Color, window_color: Color) -> void:
+	var instance_total := masses.size() + windows.size()
+	if instance_total == 0:
+		return
+	var box := BoxMesh.new()
+	box.size = Vector3.ONE
+	var instances := MultiMesh.new()
+	instances.transform_format = MultiMesh.TRANSFORM_3D
+	instances.use_colors = true
+	instances.mesh = box
+	instances.instance_count = instance_total
+	var instance_index := 0
+	for transform in masses:
+		instances.set_instance_transform(instance_index, transform)
+		instances.set_instance_color(instance_index, mass_color)
+		instance_index += 1
+	for transform in windows:
+		instances.set_instance_transform(instance_index, transform)
+		instances.set_instance_color(instance_index, window_color)
+		instance_index += 1
+	var node := MultiMeshInstance3D.new()
+	node.name = node_name
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	node.multimesh = instances
+	node.material_override = _city_colored_material
 	parent.add_child(node)
 
 

@@ -33,6 +33,7 @@ func _run() -> void:
 	_test_player_contract_and_restart()
 	_test_player_visual_silhouettes()
 	_test_bounded_course_pool()
+	_test_lane_correct_judgment_light()
 	_test_bounded_interaction_fx()
 	_test_one_life_contract()
 	_test_binding_contract()
@@ -180,6 +181,28 @@ func _test_bounded_course_pool() -> void:
 	course.queue_free()
 
 
+func _test_lane_correct_judgment_light() -> void:
+	# Reconfigure one pooled gate across every lane beneath a translated parent.
+	# This catches both the original center-lane flash and local/world mixups.
+	var translated_parent := Node3D.new()
+	translated_parent.position = Vector3(9.0, 1.5, -4.0)
+	get_root().add_child(translated_parent)
+	var gate: Node3D = GATE_SCRIPT.new()
+	gate.position = Vector3(-2.0, 0.5, 3.0)
+	translated_parent.add_child(gate)
+	gate.configure(GATE_SPEC_SCRIPT.new(0, GATE_SPEC_SCRIPT.Pattern.SINGLE_APERTURE, [Vector2i(0, EVENTS.ShapeKind.CUBE)], 2.0, 1.5))
+	var fixed_node_count := _descendant_count(gate)
+	for lane: int in range(3):
+		var spec := GATE_SPEC_SCRIPT.new(lane, GATE_SPEC_SCRIPT.Pattern.SINGLE_APERTURE, [Vector2i(lane, EVENTS.ShapeKind.CUBE)], 2.0, 1.5)
+		gate.configure(spec)
+		var expected_local := Vector3(GATE_SCRIPT.LANE_X[lane], 0.22, 0.0)
+		_expect(gate.judgment_light_local_position().is_equal_approx(expected_local), "lane %d pooled judgment light targets the matched local lane" % lane)
+		var expected_world := gate.to_global(expected_local)
+		_expect(gate.judgment_light_world_position().is_equal_approx(expected_world), "lane %d pooled judgment light preserves its lane under translated hierarchy" % lane)
+		_expect(_descendant_count(gate) == fixed_node_count, "lane %d judgment-light retarget preserves the pooled node count" % lane)
+	translated_parent.queue_free()
+
+
 func _test_bounded_interaction_fx() -> void:
 	var world := Node3D.new()
 	world.position = Vector3(11.0, 2.0, -7.0)
@@ -224,10 +247,15 @@ func _descendant_count(root: Node) -> int:
 
 
 func _test_one_life_contract() -> void:
-	_expect(GAME_ROOT_SCRIPT.judgment_is_terminal(EVENTS.JudgmentKind.MISS), "the first full miss is terminal in a one-attempt run")
-	_expect(not GAME_ROOT_SCRIPT.judgment_is_terminal(EVENTS.JudgmentKind.NEAR_MISS), "near miss remains survivable")
+	var target := GATE_SPEC_SCRIPT.new(0, GATE_SPEC_SCRIPT.Pattern.SINGLE_APERTURE, [Vector2i(0, EVENTS.ShapeKind.CUBE)], 2.0, 1.5)
+	_expect(COURSE_SCRIPT.classify_judgment(target, 0, EVENTS.ShapeKind.CUBE) == EVENTS.JudgmentKind.PERFECT, "exact lane/form match is classified perfect")
+	_expect(COURSE_SCRIPT.classify_judgment(target, 0, EVENTS.ShapeKind.SPHERE) == EVENTS.JudgmentKind.MISS, "right lane with wrong form is classified miss")
+	_expect(COURSE_SCRIPT.classify_judgment(target, 1, EVENTS.ShapeKind.CUBE) == EVENTS.JudgmentKind.MISS, "wrong lane with right form is classified miss")
+	_expect(COURSE_SCRIPT.classify_judgment(target, 2, EVENTS.ShapeKind.PYRAMID) == EVENTS.JudgmentKind.MISS, "wrong lane/form is classified miss")
+	_expect(GAME_ROOT_SCRIPT.judgment_is_terminal(EVENTS.JudgmentKind.MISS), "the first mismatch is terminal in a one-attempt run")
+	_expect(GAME_ROOT_SCRIPT.judgment_is_terminal(EVENTS.JudgmentKind.NEAR_MISS), "even a legacy near-miss signal is terminal")
 	_expect(not GAME_ROOT_SCRIPT.judgment_is_terminal(EVENTS.JudgmentKind.PERFECT), "perfect judgment remains survivable")
-	print("[METRIC] one_life_terminal_judgment=MISS")
+	print("[METRIC] one_life_survivable_judgment=PERFECT")
 
 
 func _test_binding_contract() -> void:

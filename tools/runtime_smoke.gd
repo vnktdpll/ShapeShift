@@ -33,6 +33,18 @@ func _run() -> void:
 		push_error("RUNTIME_SMOKE expected independently recycled mid/far building layers")
 		await game._graceful_quit(1)
 		return
+	if game.environment.close_window_pane_count() < 100 or game.environment.minimum_window_pane_height() < 0.30:
+		push_error("RUNTIME_SMOKE close-city windows regressed to sparse line details")
+		await game._graceful_quit(1)
+		return
+	if game.environment.mid_window_pane_count() < 100 or game.environment.far_window_pane_count() < 250:
+		push_error("RUNTIME_SMOKE mid/far building belts lack occupied window rhythms")
+		await game._graceful_quit(1)
+		return
+	if game.environment.mid_far_articulation_count() < 300:
+		push_error("RUNTIME_SMOKE mid/far towers lack bounded setback/crown articulation")
+		await game._graceful_quit(1)
+		return
 	if game.environment.city_scroll_spacing_error() > 0.01 or game.environment.mid_city_scroll_spacing_error() > 0.01 or game.environment.far_city_scroll_spacing_error() > 0.01:
 		push_error("RUNTIME_SMOKE initial city-layer spacing is discontinuous")
 		await game._graceful_quit(1)
@@ -42,6 +54,8 @@ func _run() -> void:
 	var initial_far_city_z: float = game.environment.far_city_scroll_sample_z()
 	var initial_city_wraps: int = game.environment.city_scroll_wrap_count()
 	var initial_environment_nodes: int = game.environment.bounded_environment_node_count()
+	var initial_window_panes: int = game.environment.close_window_pane_count() + game.environment.mid_window_pane_count() + game.environment.far_window_pane_count()
+	var initial_articulations: int = game.environment.mid_far_articulation_count()
 	game.environment.set_reduced_flash(true)
 	if game.environment.atmosphere_amount_ratio() > 0.35:
 		push_error("RUNTIME_SMOKE reduced-flash did not lower city atmosphere density")
@@ -102,7 +116,12 @@ func _run() -> void:
 		push_error("RUNTIME_SMOKE city light/atmosphere budget grew while scrolling")
 		await game._graceful_quit(1)
 		return
-	print("CITY_SCROLL_PASS z=%.3f wraps=%d nodes=%d lights=%d atmosphere=%d" % [game.environment.city_scroll_sample_z(), game.environment.city_scroll_wrap_count(), initial_environment_nodes, game.environment.real_city_light_count(), game.environment.atmosphere_particle_count()])
+	var final_window_panes: int = game.environment.close_window_pane_count() + game.environment.mid_window_pane_count() + game.environment.far_window_pane_count()
+	if final_window_panes != initial_window_panes or game.environment.mid_far_articulation_count() != initial_articulations:
+		push_error("RUNTIME_SMOKE façade instance budget changed while scrolling")
+		await game._graceful_quit(1)
+		return
+	print("CITY_SCROLL_PASS z=%.3f wraps=%d nodes=%d lights=%d atmosphere=%d panes=%d articulations=%d" % [game.environment.city_scroll_sample_z(), game.environment.city_scroll_wrap_count(), initial_environment_nodes, game.environment.real_city_light_count(), game.environment.atmosphere_particle_count(), final_window_panes, initial_articulations])
 	# Exercise the real GameRoot miss path. A single MISS must synchronously leave
 	# active gameplay, then settle on results; restart must restore a fresh run.
 	game._on_gate_judged(GameEvents.JudgmentKind.MISS, 0, 999)
