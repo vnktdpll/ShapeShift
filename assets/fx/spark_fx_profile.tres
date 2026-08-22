@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SparkFxProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/presentation/spark_fx_profile.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+pool_size = 100
+low_capacity = 32
+medium_capacity = 64
+high_capacity = 100

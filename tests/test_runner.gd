@@ -31,6 +31,9 @@ func _run() -> void:
 	_test_score_combo_multiplier()
 	_test_fairness_and_patterns()
 	_test_player_contract_and_restart()
+	_test_neutral_hold_input_contract()
+	_test_touch_hold_signal_contract()
+	_test_modular_scene_architecture()
 	_test_player_visual_silhouettes()
 	_test_bounded_course_pool()
 	_test_lane_correct_judgment_light()
@@ -132,6 +135,183 @@ func _test_player_contract_and_restart() -> void:
 	_expect(restart_usec < 50000, "restart state reset completes under 50ms")
 	print("[METRIC] restart_reset_usec=%d player_nodes=%d" % [restart_usec, player.get_child_count()])
 	player.queue_free()
+
+
+func _test_neutral_hold_input_contract() -> void:
+	var player_script: Script = load("res://src/player/player_controller.gd")
+	var player: Node3D = player_script.new()
+	player.reset_run(1, EVENTS.ShapeKind.CUBE)
+	var fixed_node_count := _descendant_count(player)
+
+	# Keyboard direction is a held absolute override, not a relative lane step.
+	var left_key: InputEventKey = _action_event_of_type(&"move_left", "InputEventKey") as InputEventKey
+	_expect(left_key != null, "keyboard left binding is available to the hold-input test")
+	if left_key != null:
+		left_key.pressed = true
+		_expect(player.process_gameplay_input_event(left_key) and player.lane == 0, "keyboard press holds the left lane")
+		left_key.pressed = false
+		_expect(player.process_gameplay_input_event(left_key) and player.lane == 1, "keyboard release immediately returns to center")
+	var pyramid_key: InputEventKey = _action_event_of_type(&"shape_pyramid", "InputEventKey") as InputEventKey
+	_expect(pyramid_key != null, "keyboard pyramid binding is available to the hold-input test")
+	if pyramid_key != null:
+		pyramid_key.pressed = true
+		_expect(player.process_gameplay_input_event(pyramid_key) and player.current_shape == EVENTS.ShapeKind.PYRAMID, "keyboard press holds pyramid")
+		pyramid_key.pressed = false
+		_expect(player.process_gameplay_input_event(pyramid_key) and player.current_shape == EVENTS.ShapeKind.CUBE, "keyboard form release immediately returns to cube")
+
+	# The most recently pressed opposing direction wins; releasing it exposes the
+	# still-held earlier direction before the final release returns to neutral.
+	player.set_input_action_pressed(&"move_left", true)
+	player.set_input_action_pressed(&"move_right", true)
+	_expect(player.lane == 2, "latest simultaneous lane hold wins deterministically")
+	player.set_input_action_pressed(&"move_right", false)
+	_expect(player.lane == 0, "releasing latest lane hold restores the earlier held lane")
+	player.set_input_action_pressed(&"move_left", false)
+	_expect(player.lane == 1, "releasing final lane hold restores center")
+
+	player.set_input_action_pressed(&"shape_pyramid", true)
+	player.set_input_action_pressed(&"shape_sphere", true)
+	_expect(player.current_shape == EVENTS.ShapeKind.SPHERE, "latest simultaneous form hold wins deterministically")
+	player.set_input_action_pressed(&"shape_sphere", false)
+	_expect(player.current_shape == EVENTS.ShapeKind.PYRAMID, "releasing latest form hold restores the earlier held form")
+	player.set_input_action_pressed(&"shape_pyramid", false)
+	_expect(player.current_shape == EVENTS.ShapeKind.CUBE, "releasing final form hold restores cube")
+
+	# Controller D-pad/button and analog-axis edges use the same neutral contract.
+	var right_pad: InputEventJoypadButton = _action_event_of_type(&"move_right", "InputEventJoypadButton") as InputEventJoypadButton
+	_expect(right_pad != null, "controller D-pad right binding is available to the hold-input test")
+	if right_pad != null:
+		right_pad.pressed = true
+		_expect(player.process_gameplay_input_event(right_pad) and player.lane == 2, "controller button press holds the right lane")
+		right_pad.pressed = false
+		_expect(player.process_gameplay_input_event(right_pad) and player.lane == 1, "controller button release returns to center")
+	var sphere_pad: InputEventJoypadButton = _action_event_of_type(&"shape_sphere", "InputEventJoypadButton") as InputEventJoypadButton
+	_expect(sphere_pad != null, "controller sphere binding is available to the hold-input test")
+	if sphere_pad != null:
+		sphere_pad.pressed = true
+		_expect(player.process_gameplay_input_event(sphere_pad) and player.current_shape == EVENTS.ShapeKind.SPHERE, "controller form press holds sphere")
+		sphere_pad.pressed = false
+		_expect(player.process_gameplay_input_event(sphere_pad) and player.current_shape == EVENTS.ShapeKind.CUBE, "controller form release returns to cube")
+	var left_stick: InputEventJoypadMotion = _action_event_of_type(&"move_left", "InputEventJoypadMotion") as InputEventJoypadMotion
+	_expect(left_stick != null, "controller analog-left binding is available to the hold-input test")
+	if left_stick != null:
+		left_stick.axis_value = -1.0
+		_expect(player.process_gameplay_input_event(left_stick) and player.lane == 0, "controller stick deflection holds the left lane")
+		left_stick.axis_value = 1.0
+		_expect(player.process_gameplay_input_event(left_stick) and player.lane == 2, "controller stick can cross directly from left to right")
+		left_stick.axis_value = 0.0
+		_expect(player.process_gameplay_input_event(left_stick) and player.lane == 1, "controller stick neutral returns to center")
+
+	# Touch sends the same explicit press/release model through GameRoot.
+	player.set_input_action_pressed(&"move_right", true)
+	player.set_input_action_pressed(&"shape_pyramid", true)
+	_expect(player.lane == 2 and player.current_shape == EVENTS.ShapeKind.PYRAMID, "touch-model holds steer lane and form together")
+	player.set_input_action_pressed(&"move_right", false)
+	player.set_input_action_pressed(&"shape_pyramid", false)
+	_expect(player.lane == 1 and player.current_shape == EVENTS.ShapeKind.CUBE, "touch-model releases restore center cube")
+
+	player.set_input_action_pressed(&"move_left", true)
+	player.set_input_action_pressed(&"shape_sphere", true)
+	player.set_active(false)
+	_expect(player.lane == 1 and player.current_shape == EVENTS.ShapeKind.CUBE, "pausing clears held overrides to center cube")
+	player.set_active(true)
+	player.set_input_action_pressed(&"move_right", true)
+	player.set_input_action_pressed(&"shape_pyramid", true)
+	player.reset_run(1, EVENTS.ShapeKind.CUBE)
+	_expect(player.lane == 1 and player.current_shape == EVENTS.ShapeKind.CUBE, "run reset clears held overrides to center cube")
+
+	# Direct/autopilot calls stay persistent because neutral is applied only on an
+	# actual release/reset/pause edge, never from per-frame absence polling.
+	player.move_to_lane(0)
+	player.set_shape(EVENTS.ShapeKind.SPHERE)
+	player._process(0.25)
+	_expect(player.lane == 0 and player.current_shape == EVENTS.ShapeKind.SPHERE, "programmatic lane/form selection persists without raw input")
+	_expect(_descendant_count(player) == fixed_node_count, "hold/release input creates no additional player nodes")
+	print("[METRIC] neutral_input=keyboard_controller_touch programmatic=persistent nodes=%d" % fixed_node_count)
+	player.queue_free()
+
+
+func _test_touch_hold_signal_contract() -> void:
+	var hud: CanvasLayer = HUD_SCRIPT.new()
+	var edges: Array[String] = []
+	hud.gameplay_action_changed.connect(func(action: StringName, pressed: bool) -> void: edges.append("%s:%s" % [action, str(pressed)]))
+	hud._on_touch_activated(&"move_left")
+	hud._on_touch_activated(&"move_right")
+	hud._on_touch_deactivated(&"move_right")
+	hud._on_touch_deactivated(&"move_left")
+	hud._on_touch_activated(&"shape_pyramid")
+	hud._on_touch_activated(&"shape_sphere")
+	hud._on_touch_deactivated(&"shape_sphere")
+	hud._on_touch_deactivated(&"shape_pyramid")
+	_expect(edges == ["move_left:true", "move_right:true", "move_right:false", "move_left:false", "shape_pyramid:true", "shape_sphere:true", "shape_sphere:false", "shape_pyramid:false"], "touch HUD forwards every lane/form press and release edge in order")
+	hud._on_touch_activated(&"move_left")
+	hud._on_touch_activated(&"shape_sphere")
+	hud._set_touch_visible(false)
+	_expect(hud._held_touch_lanes.is_empty() and hud._held_touch_shapes.is_empty(), "hiding touch controls clears multi-touch hold bookkeeping")
+	hud.queue_free()
+
+
+func _action_event_of_type(action: StringName, type_name: String) -> InputEvent:
+	for event: InputEvent in InputMap.action_get_events(action):
+		if event.get_class() == type_name:
+			return event.duplicate()
+	return null
+
+
+func _test_modular_scene_architecture() -> void:
+	var scene_paths := [
+		"res://scenes/gameplay/player/player.tscn",
+		"res://scenes/gameplay/track/target_gate.tscn",
+		"res://scenes/gameplay/track/track_course.tscn",
+		"res://scenes/presentation/arcade_camera_rig.tscn",
+		"res://scenes/presentation/arcade_fx_director.tscn",
+		"res://scenes/presentation/neon_environment.tscn",
+		"res://scenes/audio/reactive_audio_engine.tscn",
+		"res://scenes/ui/hud.tscn",
+		"res://scenes/main.tscn",
+	]
+	for path: String in scene_paths:
+		var packed := load(path) as PackedScene
+		_expect(packed != null and packed.can_instantiate(), "%s is a loadable editor scene" % path)
+
+	var main := (load("res://scenes/main.tscn") as PackedScene).instantiate()
+	var expected_subsystems := ["NeonCourseEnvironment", "TrackCourse", "Player", "ArcadeFxDirector", "ArcadeCameraRig", "ReactiveAudioEngine", "HUD"]
+	var actual_subsystems: Array[String] = []
+	for child: Node in main.get_children():
+		actual_subsystems.append(child.name)
+	_expect(actual_subsystems == expected_subsystems, "main scene exposes the stable named subsystem tree")
+	_expect(main.get_node("NeonCourseEnvironment").scene_file_path == "res://scenes/presentation/neon_environment.tscn", "main instances the authored environment scene")
+	_expect(main.get_node("TrackCourse").scene_file_path == "res://scenes/gameplay/track/track_course.tscn", "main instances the authored track scene")
+	_expect(main.get_node("Player").scene_file_path == "res://scenes/gameplay/player/player.tscn", "main instances the authored player scene")
+	_expect(main.get_node("ArcadeCameraRig/Camera3D") is Camera3D, "camera scene exposes its editable Camera3D primitive")
+	_expect(main.get_node("ArcadeFxDirector/PooledSparks") is Node3D and main.get_node("ArcadeFxDirector/ScreenFeedback/Flash") is ColorRect, "FX scene exposes stable pool and screen-feedback authoring groups")
+	_expect(main.get_node("ReactiveAudioEngine/ProceduralMusic") is AudioStreamPlayer and main.get_node("ReactiveAudioEngine/ProceduralSfx") is AudioStreamPlayer, "audio scene exposes both editable generator players")
+	_expect(main.get_node("HUD").scene_file_path == "res://scenes/ui/hud.tscn", "main instances the authored HUD scene")
+	var player_scene: Node3D = main.get_node("Player") as Node3D
+	var authored_player_node_count := _descendant_count(player_scene)
+	var authored_form_materials: Array[Material] = []
+	for form_name: String in ["CubeForm", "PyramidForm", "SphereForm"]:
+		var primitive := player_scene.get_node("Avatar/%s" % form_name).get_child(0) as MeshInstance3D
+		_expect(primitive != null, "player scene exposes editable %s primitive" % form_name)
+		authored_form_materials.append(primitive.material_override)
+	_expect(player_scene.get_node("Avatar/Hitbox/CollisionShape3D") is CollisionShape3D, "player scene exposes its editable collision primitive")
+	player_scene._ready()
+	_expect(_descendant_count(player_scene) == authored_player_node_count, "player controller binds the authored primitive tree without runtime duplication")
+	for index in 3:
+		var bound_primitive := player_scene.get_node("Avatar/%s" % ["CubeForm", "PyramidForm", "SphereForm"][index]).get_child(0) as MeshInstance3D
+		_expect(bound_primitive.material_override == authored_form_materials[index], "player form %d retains its scene-authored editable material" % index)
+	var course: Node3D = main.get_node("TrackCourse") as Node3D
+	_expect(course.gate_scene is PackedScene and course.gate_scene.resource_path == "res://scenes/gameplay/track/target_gate.tscn", "track scene exports its reusable target-gate PackedScene")
+	var authored_gate := (load("res://scenes/gameplay/track/target_gate.tscn") as PackedScene).instantiate() as Node3D
+	var authored_gate_node_count := _descendant_count(authored_gate)
+	var authored_cube_material := (authored_gate.get_node("StandaloneTarget/Target_Cube/Top") as MeshInstance3D).material_override
+	authored_gate.configure(GATE_SPEC_SCRIPT.new(0, GATE_SPEC_SCRIPT.Pattern.SINGLE_APERTURE, [Vector2i(2, EVENTS.ShapeKind.CUBE)], 2.0, 1.5))
+	_expect(authored_gate_node_count == 13 and _descendant_count(authored_gate) == authored_gate_node_count, "authored target gate binds without duplicating its 13-node primitive tree")
+	_expect(authored_gate.get_node("StandaloneTarget/Target_Cube/Top").material_override == authored_cube_material, "target gate retains its scene-authored editable material")
+	_expect(authored_gate.get_node("PooledJudgmentLight") is OmniLight3D, "target gate exposes its editable lane-local judgment light")
+	authored_gate.free()
+	print("[METRIC] modular_scenes=%d main_subsystems=%d editable_player_forms=3" % [scene_paths.size(), actual_subsystems.size()])
+	main.free()
 
 
 func _test_player_visual_silhouettes() -> void:

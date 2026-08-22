@@ -1,0 +1,22 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/audio/reactive_audio_engine.gd" id="1_audio"]
+
+[sub_resource type="AudioStreamGenerator" id="GeneratorMusic"]
+mix_rate = 24000.0
+buffer_length = 0.16
+
+[sub_resource type="AudioStreamGenerator" id="GeneratorSfx"]
+mix_rate = 24000.0
+buffer_length = 0.16
+
+[node name="ReactiveAudioEngine" type="Node"]
+script = ExtResource("1_audio")
+
+[node name="ProceduralMusic" type="AudioStreamPlayer" parent="."]
+stream = SubResource("GeneratorMusic")
+bus = &"Music"
+
+[node name="ProceduralSfx" type="AudioStreamPlayer" parent="."]
+stream = SubResource("GeneratorSfx")
+bus = &"SFX"

@@ -5,7 +5,8 @@ extends Control
 ## normal launch, then hands off to the game without distorting the image.
 
 const MAIN_SCENE_PATH := "res://scenes/main.tscn"
-const ARTWORK_PATH := "res://assets/branding/splash-4x3.png"
+const ARTWORK_PATH := "res://assets/branding/splash-flat-4x3.png"
+const SOURCE_ARTWORK_PATH := "res://assets/branding/splash-4x3.png"
 const NORMAL_HOLD_SECONDS := 1.6
 const FADE_SECONDS := 0.22
 

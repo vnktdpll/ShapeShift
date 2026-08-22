@@ -1,14 +1,17 @@
 {
 	"active_gate_nodes": 10,
 	"engine": "4.7.1-stable (official)",
-	"frames": 4194,
-	"p50_ms": 6.896,
-	"p95_ms": 6.94444444444444,
+	"frames": 3487,
+	"p50_ms": 8.33333333333333,
+	"p95_ms": 8.33333333333333,
 	"p95_target_ms": 16.7,
-	"p99_ms": 12.7502222222222,
+	"p99_ms": 14.113,
 	"passed": true,
 	"quality": 2,
-	"resolution": "1280x720",
-	"seconds": 30.006138666668,
+	"render_draw_calls": 86,
+	"render_objects": 275,
+	"render_primitives": 26812,
+	"resolution": "960x720",
+	"seconds": 30.0006936666656,
 	"speed_mode": "forced_maximum"
 }

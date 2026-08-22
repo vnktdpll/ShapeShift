@@ -5,6 +5,9 @@ extends Node3D
 ## deterministic gate course: the road gives the runner a strong sense of
 ## velocity without becoming another source of gameplay information.
 
+const DEFAULT_CITY_PROFILE: NeonCityProfile = preload("res://assets/environment/neon_city_profile.tres")
+
+@export var city_profile: NeonCityProfile = DEFAULT_CITY_PROFILE
 @export_range(8, 48, 1) var segment_count: int = 8
 @export_range(5.0, 24.0, 0.5) var segment_length: float = 10.0
 @export_range(2.0, 6.0, 0.25) var lane_width: float = 3.25
@@ -19,6 +22,8 @@ var _city_scroll_nodes: Array[Node3D] = []
 var _mid_city_scroll_nodes: Array[Node3D] = []
 var _far_city_scroll_nodes: Array[Node3D] = []
 var _course_root: Node3D
+var _course_batch_root: Node3D
+var _course_batch_groups: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
 var _scroll_speed: float = 0.0
 var _cyan := Color("2ae8ff")
@@ -40,9 +45,7 @@ var _sky_accent_material: StandardMaterial3D
 var _star_material: StandardMaterial3D
 var _warm_marker_material: StandardMaterial3D
 var _city_near_material: StandardMaterial3D
-var _city_window_material: StandardMaterial3D
 var _city_colored_material: StandardMaterial3D
-var _city_magenta_material: StandardMaterial3D
 var _atmosphere_particles: GPUParticles3D
 var _city_wrap_count: int = 0
 var _last_city_wrap_count: int = 0
@@ -55,25 +58,13 @@ var _close_window_pane_count: int = 0
 var _mid_window_pane_count: int = 0
 var _far_window_pane_count: int = 0
 var _mid_far_articulation_count: int = 0
+var _city_building_footprints: Array[Dictionary] = []
 
-const REAL_CITY_LIGHT_COUNT := 4
-const ATMOSPHERE_PARTICLE_COUNT := 36
-const CITY_CHUNK_COUNT := 5
-const CITY_CHUNK_SPACING := 14.5
-const CITY_CHUNK_LOOP_LENGTH := CITY_CHUNK_SPACING * CITY_CHUNK_COUNT
-const CITY_CHUNK_FRONT_Z := 16.0
-const CITY_SCROLL_FACTOR := 0.86
-const MID_CITY_CHUNK_COUNT := 7
-const MID_CITY_CHUNK_SPACING := 15.0
-const MID_CITY_CHUNK_LOOP_LENGTH := MID_CITY_CHUNK_SPACING * MID_CITY_CHUNK_COUNT
-const MID_CITY_CHUNK_FRONT_Z := 18.0
-const MID_CITY_SCROLL_FACTOR := 0.52
-const FAR_CITY_CHUNK_COUNT := 8
-const FAR_CITY_CHUNK_SPACING := 18.0
-const FAR_CITY_CHUNK_LOOP_LENGTH := FAR_CITY_CHUNK_SPACING * FAR_CITY_CHUNK_COUNT
-const FAR_CITY_CHUNK_FRONT_Z := 20.0
-const FAR_CITY_SCROLL_FACTOR := 0.30
-const MIN_WINDOW_PANE_HEIGHT := 0.30
+const MIN_BUILDING_FOOTPRINT_CLEARANCE := 0.18
+# Lateral zoning keeps whole buildings—not just their centre points—out of one
+# another. Each tier starts beyond the maximum outer edge of the tier before it;
+# the progressively wider bands still project as a dense canyon at their greater
+# depth without stacking grey masses through the closer silhouettes.
 
 
 func _ready() -> void:
@@ -86,6 +77,8 @@ func _process(delta: float) -> void:
 
 
 func build() -> void:
+	if city_profile == null:
+		city_profile = DEFAULT_CITY_PROFILE
 	if is_instance_valid(_course_root):
 		_course_root.queue_free()
 	_segments.clear()
@@ -102,9 +95,14 @@ func build() -> void:
 	_mid_window_pane_count = 0
 	_far_window_pane_count = 0
 	_mid_far_articulation_count = 0
+	_city_building_footprints.clear()
+	_course_batch_groups.clear()
 	_course_root = Node3D.new()
 	_course_root.name = "ReactiveCourseDressing"
 	add_child(_course_root)
+	_course_batch_root = Node3D.new()
+	_course_batch_root.name = "BatchedCoursePrimitives"
+	_course_root.add_child(_course_batch_root)
 	_rng.seed = seed
 	_configure_world()
 	_build_material_palette()
@@ -114,22 +112,36 @@ func build() -> void:
 		var segment := _make_segment(index)
 		_course_root.add_child(segment)
 		_segments.append(segment)
+	_flush_course_batches()
 	_bounded_environment_node_count = _descendant_count(_course_root)
 
 
 ## Recycles visual dressing behind the runner. Call from the game's track tick.
 func advance(distance: float) -> void:
+	var refresh_course_batches := false
+	_course_batch_root.position.z += distance
 	for segment in _segments:
-		segment.position.z += distance
-		if segment.position.z > segment_length * 1.5:
+		if segment.position.z + _course_batch_root.position.z > segment_length * 1.5:
 			segment.position.z -= float(segment_count) * segment_length
+			refresh_course_batches = true
+	# Keep course transforms numerically compact on endless runs. The common root
+	# provides the per-frame motion; repeated primitive transforms are touched only
+	# when one segment recycles, never every frame.
+	var loop_length := float(segment_count) * segment_length
+	if _course_batch_root.position.z >= loop_length:
+		_course_batch_root.position.z -= loop_length
+		for segment in _segments:
+			segment.position.z += loop_length
+		refresh_course_batches = true
+	if refresh_course_batches:
+		_refresh_course_batches()
 	# Independently recycled facade chunks use the course's forward motion with a
 	# small depth-parallax reduction. Only a single chunk crosses the rear/front
 	# boundary at a time; its buildings, emissive fixtures and optional real lamp
 	# remain one transform hierarchy. No runtime nodes or particles are created.
-	_last_city_wrap_count = _advance_city_layer(_city_scroll_nodes, distance * CITY_SCROLL_FACTOR, CITY_CHUNK_FRONT_Z, CITY_CHUNK_LOOP_LENGTH)
-	_last_mid_city_wrap_count = _advance_city_layer(_mid_city_scroll_nodes, distance * MID_CITY_SCROLL_FACTOR, MID_CITY_CHUNK_FRONT_Z, MID_CITY_CHUNK_LOOP_LENGTH)
-	_last_far_city_wrap_count = _advance_city_layer(_far_city_scroll_nodes, distance * FAR_CITY_SCROLL_FACTOR, FAR_CITY_CHUNK_FRONT_Z, FAR_CITY_CHUNK_LOOP_LENGTH)
+	_last_city_wrap_count = _advance_city_layer(_city_scroll_nodes, distance * city_profile.close_scroll_multiplier, city_profile.close_front_z, city_profile.close_chunk_spacing * city_profile.close_chunk_count)
+	_last_mid_city_wrap_count = _advance_city_layer(_mid_city_scroll_nodes, distance * city_profile.mid_scroll_multiplier, city_profile.mid_front_z, city_profile.mid_chunk_spacing * city_profile.mid_chunk_count)
+	_last_far_city_wrap_count = _advance_city_layer(_far_city_scroll_nodes, distance * city_profile.far_scroll_multiplier, city_profile.far_front_z, city_profile.far_chunk_spacing * city_profile.far_chunk_count)
 	_city_wrap_count += _last_city_wrap_count
 	_mid_city_wrap_count += _last_mid_city_wrap_count
 	_far_city_wrap_count += _last_far_city_wrap_count
@@ -186,7 +198,7 @@ func city_scroll_last_wrap_count() -> int:
 
 
 func city_scroll_spacing_error() -> float:
-	return _city_layer_spacing_error(_city_scroll_nodes, CITY_CHUNK_LOOP_LENGTH, CITY_CHUNK_SPACING)
+	return _city_layer_spacing_error(_city_scroll_nodes, city_profile.close_chunk_spacing * city_profile.close_chunk_count, city_profile.close_chunk_spacing)
 
 
 func mid_city_scroll_root_count() -> int:
@@ -206,11 +218,11 @@ func far_city_scroll_sample_z() -> float:
 
 
 func mid_city_scroll_spacing_error() -> float:
-	return _city_layer_spacing_error(_mid_city_scroll_nodes, MID_CITY_CHUNK_LOOP_LENGTH, MID_CITY_CHUNK_SPACING)
+	return _city_layer_spacing_error(_mid_city_scroll_nodes, city_profile.mid_chunk_spacing * city_profile.mid_chunk_count, city_profile.mid_chunk_spacing)
 
 
 func far_city_scroll_spacing_error() -> float:
-	return _city_layer_spacing_error(_far_city_scroll_nodes, FAR_CITY_CHUNK_LOOP_LENGTH, FAR_CITY_CHUNK_SPACING)
+	return _city_layer_spacing_error(_far_city_scroll_nodes, city_profile.far_chunk_spacing * city_profile.far_chunk_count, city_profile.far_chunk_spacing)
 
 
 func last_mid_city_wrap_count() -> int:
@@ -262,7 +274,75 @@ func mid_far_articulation_count() -> int:
 
 
 func minimum_window_pane_height() -> float:
-	return MIN_WINDOW_PANE_HEIGHT
+	return minf(city_profile.close_window_height, minf(city_profile.mid_window_height, city_profile.far_window_height))
+
+
+func city_building_footprint_count() -> int:
+	return _city_building_footprints.size()
+
+
+func city_building_footprint_overlap_count() -> int:
+	var overlaps := 0
+	for first_index in _city_building_footprints.size():
+		var first: Rect2 = _city_building_footprints[first_index].rect
+		for second_index in range(first_index + 1, _city_building_footprints.size()):
+			var second: Rect2 = _city_building_footprints[second_index].rect
+			if _footprint_clearance(first, second) < 0.0:
+				overlaps += 1
+	return overlaps
+
+
+func minimum_city_building_footprint_clearance() -> float:
+	var minimum_clearance := INF
+	for first_index in _city_building_footprints.size():
+		var first: Rect2 = _city_building_footprints[first_index].rect
+		for second_index in range(first_index + 1, _city_building_footprints.size()):
+			var second: Rect2 = _city_building_footprints[second_index].rect
+			minimum_clearance = minf(minimum_clearance, _footprint_clearance(first, second))
+	return 0.0 if is_inf(minimum_clearance) else minimum_clearance
+
+
+func minimum_cross_tier_lateral_gap() -> float:
+	var minimum_gap := INF
+	for first_index in _city_building_footprints.size():
+		var first := _city_building_footprints[first_index]
+		for second_index in range(first_index + 1, _city_building_footprints.size()):
+			var second := _city_building_footprints[second_index]
+			if first.side != second.side or first.layer == second.layer:
+				continue
+			var first_rect: Rect2 = first.rect
+			var second_rect: Rect2 = second.rect
+			minimum_gap = minf(minimum_gap, _axis_clearance(first_rect.position.x, first_rect.end.x, second_rect.position.x, second_rect.end.x))
+	return 0.0 if is_inf(minimum_gap) else minimum_gap
+
+
+func minimum_building_footprint_clearance_required() -> float:
+	return MIN_BUILDING_FOOTPRINT_CLEARANCE
+
+
+func _record_building_footprint(layer: StringName, side: float, center: Vector2, size: Vector2) -> void:
+	_city_building_footprints.append({
+		"layer": layer,
+		"side": -1 if side < 0.0 else 1,
+		"rect": Rect2(center - size * 0.5, size),
+	})
+
+
+func _footprint_clearance(first: Rect2, second: Rect2) -> float:
+	var x_clearance := _axis_clearance(first.position.x, first.end.x, second.position.x, second.end.x)
+	var z_clearance := _axis_clearance(first.position.y, first.end.y, second.position.y, second.end.y)
+	# Axis-aligned footprints are disjoint when either axis has non-negative
+	# clearance. The larger axis gap is the actual separating corridor; if both
+	# are negative the result reports penetration rather than hiding the overlap.
+	return maxf(x_clearance, z_clearance)
+
+
+func _axis_clearance(first_min: float, first_max: float, second_min: float, second_max: float) -> float:
+	if first_max <= second_min:
+		return second_min - first_max
+	if second_max <= first_min:
+		return first_min - second_max
+	return -minf(first_max, second_max) + maxf(first_min, second_min)
 
 
 func _descendant_count(parent: Node) -> int:
@@ -339,7 +419,6 @@ func _build_material_palette() -> void:
 	# Its values stay below the interactive cyan/pink palette, so the richer
 	# silhouette never steals the runner's decision cone.
 	_city_near_material = _dark_material(Color("09132d"), 0.48, 0.52)
-	_city_window_material = _unshaded_emissive_material(Color("62bdff"), 0.50)
 	# Mid/far bodies and panes share one vertex-colored material. Per-instance
 	# color preserves the window contrast while keeping each moving depth chunk
 	# to one draw instead of doubling the background draw-call budget.
@@ -347,7 +426,6 @@ func _build_material_palette() -> void:
 	_city_colored_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_city_colored_material.albedo_color = Color.WHITE
 	_city_colored_material.vertex_color_use_as_albedo = true
-	_city_magenta_material = _unshaded_emissive_material(Color("d94ba9"), 0.64)
 
 
 func _create_key_light() -> void:
@@ -377,20 +455,20 @@ func _create_sky_composition() -> void:
 
 
 func _create_close_city_chunks(parent: Node3D) -> void:
-	for index in CITY_CHUNK_COUNT:
+	for index in city_profile.close_chunk_count:
 		var chunk := Node3D.new()
 		chunk.name = "ScrollingFacadeChunk%02d" % index
-		chunk.position.z = 2.0 - float(index) * CITY_CHUNK_SPACING
+		chunk.position.z = 2.0 - float(index) * city_profile.close_chunk_spacing
 		parent.add_child(chunk)
 		_city_scroll_nodes.append(chunk)
 		_create_close_city_chunk(chunk, index)
 
 
 func _create_mid_city_chunks(parent: Node3D) -> void:
-	for index in MID_CITY_CHUNK_COUNT:
+	for index in city_profile.mid_chunk_count:
 		var chunk := Node3D.new()
 		chunk.name = "ScrollingMidCityChunk%02d" % index
-		chunk.position.z = 8.0 - float(index) * MID_CITY_CHUNK_SPACING
+		chunk.position.z = 8.0 - float(index) * city_profile.mid_chunk_spacing
 		parent.add_child(chunk)
 		_mid_city_scroll_nodes.append(chunk)
 		var masses: Array[Transform3D] = []
@@ -399,8 +477,10 @@ func _create_mid_city_chunks(parent: Node3D) -> void:
 			for tier in 2:
 				var height := 8.4 + float((index * 3 + tier * 2) % 5) * 1.38
 				var width := 2.5 + float((index + tier) % 3) * 0.58
-				var x: float = side * (11.8 + float(tier) * 3.25 + float(index % 2) * 0.42)
-				var local_z := -float(tier) * 4.4
+				var tier_inner_edge := city_profile.mid_inner_edge + float(tier) * city_profile.mid_tier_pitch
+				var x: float = side * (tier_inner_edge + width * 0.5)
+				var local_z := -float(tier) * city_profile.mid_tier_depth_pitch
+				_record_building_footprint(&"mid", side, Vector2(x, chunk.position.z + local_z), Vector2(width, 4.2))
 				# A broad lower shaft, inset upper setback, crown and vertical ribs
 				# create a readable tower silhouette instead of a single grey slab.
 				var lower_height := height * 0.69
@@ -412,12 +492,13 @@ func _create_mid_city_chunks(parent: Node3D) -> void:
 					masses.append(_box_transform(Vector3(0.10, lower_height * 0.88, 0.10), Vector3(x + rib_side * width * 0.38, lower_height * 0.50, local_z + 2.14)))
 				# Pane modules have both visible width and height. Deterministic gaps
 				# make occupancy feel inhabited without becoming a bright checkerboard.
-				for row in 4:
-					for column in 2:
+				for row in city_profile.mid_window_rows:
+					for column in city_profile.mid_window_columns:
 						if (index + tier * 2 + row * 3 + column + (0 if side < 0.0 else 1)) % 5 == 0:
 							continue
-						var pane_x := x + (float(column) - 0.5) * width * 0.42
-						windows.append(_box_transform(Vector3(width * 0.24, 0.34, 0.09), Vector3(pane_x, 1.25 + float(row) * 1.34, local_z + 2.16)))
+						var column_center := (float(city_profile.mid_window_columns) - 1.0) * 0.5
+						var pane_x := x + (float(column) - column_center) * width * 0.42
+						windows.append(_box_transform(Vector3(width * city_profile.mid_window_width_ratio, city_profile.mid_window_height, 0.09), Vector3(pane_x, 1.25 + float(row) * 1.34, local_z + 2.16)))
 						_mid_window_pane_count += 1
 				# The inner side wall is often the largest surface from the runner's
 				# perspective, so it receives a second, dimmer-looking pane rhythm
@@ -432,17 +513,20 @@ func _create_mid_city_chunks(parent: Node3D) -> void:
 				_mid_far_articulation_count += 5
 			# A stepped connector/roof silhouette breaks repetition between the
 			# two depth columns while remaining outside the central decision cone.
-			masses.append(_box_transform(Vector3(5.2, 0.46, 2.8), Vector3(side * (12.7 + float(index % 2)), 5.4 + float(index % 3) * 0.58, -6.0)))
-			masses.append(_box_transform(Vector3(2.3, 0.34, 2.2), Vector3(side * (13.4 + float(index % 2)), 5.78 + float(index % 3) * 0.58, -6.1)))
+			# Keep the connector inside the second mid-tier footprint instead of
+			# bridging through the close-city band in front of it.
+			var connector_x: float = side * (city_profile.mid_inner_edge + city_profile.mid_tier_pitch + 1.2)
+			masses.append(_box_transform(Vector3(5.2, 0.46, 2.8), Vector3(connector_x, 5.4 + float(index % 3) * 0.58, -6.0)))
+			masses.append(_box_transform(Vector3(2.3, 0.34, 2.2), Vector3(connector_x + side * 0.5, 5.78 + float(index % 3) * 0.58, -6.1)))
 			_mid_far_articulation_count += 2
 		_add_colored_box_multimesh(chunk, "MidCityArticulatedFacades", masses, windows, Color("172d51"), Color("477fa6"))
 
 
 func _create_far_city_chunks(parent: Node3D) -> void:
-	for index in FAR_CITY_CHUNK_COUNT:
+	for index in city_profile.far_chunk_count:
 		var chunk := Node3D.new()
 		chunk.name = "ScrollingFarCityChunk%02d" % index
-		chunk.position.z = 15.0 - float(index) * FAR_CITY_CHUNK_SPACING
+		chunk.position.z = 15.0 - float(index) * city_profile.far_chunk_spacing
 		parent.add_child(chunk)
 		_far_city_scroll_nodes.append(chunk)
 		var masses: Array[Transform3D] = []
@@ -451,8 +535,10 @@ func _create_far_city_chunks(parent: Node3D) -> void:
 			for tier in 3:
 				var height := 11.0 + float((index * 7 + tier * 3) % 7) * 1.48
 				var width := 2.8 + float((index + tier) % 3) * 0.66
-				var x: float = side * (17.0 + float(tier) * 4.1 + float((index * 2) % 3) * 0.72)
-				var local_z := -float(tier) * 4.8
+				var tier_inner_edge := city_profile.far_inner_edge + float(tier) * city_profile.far_tier_pitch
+				var x: float = side * (tier_inner_edge + width * 0.5)
+				var local_z := -float(tier) * city_profile.far_tier_depth_pitch
+				_record_building_footprint(&"far", side, Vector2(x, chunk.position.z + local_z), Vector2(width, 3.2))
 				var lower_height := height * 0.72
 				var upper_height := height - lower_height
 				masses.append(_box_transform(Vector3(width, lower_height, 3.2), Vector3(x, lower_height * 0.5 - 0.55, local_z)))
@@ -462,12 +548,13 @@ func _create_far_city_chunks(parent: Node3D) -> void:
 				# Short rooftop spires give the far belt a genuine skyline rhythm.
 				if (index + tier) % 2 == 0:
 					masses.append(_box_transform(Vector3(0.12, 1.35, 0.12), Vector3(x, height + 0.50, local_z - 0.12)))
-				for row in 5:
-					for column in 2:
+				for row in city_profile.far_window_rows:
+					for column in city_profile.far_window_columns:
 						if (index * 2 + tier + row + column * 3 + (0 if side < 0.0 else 1)) % 6 <= 1:
 							continue
-						var pane_x := x + (float(column) - 0.5) * width * 0.40
-						windows.append(_box_transform(Vector3(width * 0.22, 0.30, 0.07), Vector3(pane_x, 1.42 + float(row) * 1.65, local_z + 1.64)))
+						var column_center := (float(city_profile.far_window_columns) - 1.0) * 0.5
+						var pane_x := x + (float(column) - column_center) * width * 0.40
+						windows.append(_box_transform(Vector3(width * city_profile.far_window_width_ratio, city_profile.far_window_height, 0.07), Vector3(pane_x, 1.42 + float(row) * 1.65, local_z + 1.64)))
 						_far_window_pane_count += 1
 				for row in 4:
 					for depth_column in 2:
@@ -490,18 +577,20 @@ func _create_close_city_chunk(chunk: Node3D, index: int) -> void:
 	for side in [-1.0, 1.0]:
 		var height := 10.0 + float((index * 5 + (0 if side < 0.0 else 2)) % 5) * 1.55
 		var width := 3.4 + float(index % 3) * 0.52
-		var x: float = side * (7.8 + width * 0.5 + float(index % 2) * 0.45)
+		var x: float = side * (city_profile.close_inner_edge + width * 0.5)
+		_record_building_footprint(&"close", side, Vector2(x, chunk.position.z), Vector2(width, 6.0))
 		masses.append(_box_transform(Vector3(width, height, 6.0), Vector3(x, height * 0.5 - 0.58, 0.0)))
 		# Side cantilever and a compact abstract sign enrich the near silhouette
 		# without spanning the central gameplay cone.
-		masses.append(_box_transform(Vector3(4.2, 0.32, 3.4), Vector3(side * (7.9 + float(index % 2) * 0.5), 8.1 + float(index % 2) * 1.5, -3.5)))
+		masses.append(_box_transform(Vector3(4.2, 0.32, 3.4), Vector3(side * (city_profile.close_inner_edge + 0.1 + float(index % 2) * 0.5), 8.1 + float(index % 2) * 1.5, -3.5)))
 		masses.append(_box_transform(Vector3(width * 0.58, 1.42, 0.13), Vector3(x - side * width * 0.08, 5.0 + float(index % 2) * 1.45, 3.08)))
-		for row in 6:
-			for column in 3:
+		for row in city_profile.close_window_rows:
+			for column in city_profile.close_window_columns:
 				if (index * 2 + row * 3 + column + (0 if side < 0.0 else 1)) % 5 == 0:
 					continue
-				var pane_x := x + (float(column) - 1.0) * width * 0.25
-				cyan_details.append(_box_transform(Vector3(width * 0.17, 0.42, 0.08), Vector3(pane_x, 1.25 + float(row) * 1.28, 3.05)))
+				var column_center := (float(city_profile.close_window_columns) - 1.0) * 0.5
+				var pane_x := x + (float(column) - column_center) * width * 0.25
+				cyan_details.append(_box_transform(Vector3(width * city_profile.close_window_width_ratio, city_profile.close_window_height, 0.08), Vector3(pane_x, 1.25 + float(row) * 1.28, 3.05)))
 				_close_window_pane_count += 1
 		for row in 5:
 			for depth_column in 3:
@@ -512,10 +601,10 @@ func _create_close_city_chunk(chunk: Node3D, index: int) -> void:
 				_close_window_pane_count += 1
 		# Compact, filled sign panels replace the former edge-to-edge neon lines.
 		magenta_details.append(_box_transform(Vector3(width * 0.30, 1.05, 0.10), Vector3(x - side * width * 0.25, 5.10 + float(index % 2) * 1.20, 3.07)))
-		magenta_details.append(_box_transform(Vector3(1.58, 0.44, 0.13), Vector3(side * (7.62 + float(index % 2) * 0.5), 7.89 + float(index % 2) * 1.5, -1.78)))
+		magenta_details.append(_box_transform(Vector3(1.58, 0.44, 0.13), Vector3(side * (city_profile.close_inner_edge - 0.18 + float(index % 2) * 0.5), 7.89 + float(index % 2) * 1.5, -1.78)))
 	# Four of the five chunks carry one complete streetlamp assembly. The light is
 	# a child of the same chunk as its mast/emitter, preserving exact coherence.
-	if index < REAL_CITY_LIGHT_COUNT:
+	if index < city_profile.real_light_count:
 		var side := -1.0 if index % 2 == 0 else 1.0
 		var lamp_x := side * 6.35
 		masses.append(_box_transform(Vector3(0.15, 3.45, 0.15), Vector3(lamp_x, 1.38, 0.0)))
@@ -532,8 +621,11 @@ func _create_close_city_chunk(chunk: Node3D, index: int) -> void:
 		light.shadow_enabled = false
 		chunk.add_child(light)
 	_add_box_multimesh(chunk, "FacadeMasses", masses, _city_near_material)
-	_add_box_multimesh(chunk, "FacadeWindowPanes", cyan_details, _city_window_material)
-	_add_box_multimesh(chunk, "FacadeMagentaDetails", magenta_details, _city_magenta_material)
+	# Both detail colors share a vertex-colored MultiMesh. This preserves every
+	# pane/sign and its palette while removing one background draw per close chunk.
+	# The profile's emission control maps to restrained unshaded RGB intensity.
+	var profile_brightness := clampf(city_profile.window_emission_strength / 0.50, 0.0, 2.0)
+	_add_colored_box_multimesh(chunk, "FacadeColoredDetails", cyan_details, magenta_details, _scaled_rgb(Color("62bdff"), profile_brightness), _scaled_rgb(Color("d94ba9"), profile_brightness))
 
 
 func _create_atmospheric_particles(parent: Node3D) -> void:
@@ -542,7 +634,7 @@ func _create_atmospheric_particles(parent: Node3D) -> void:
 	# no gameplay-particle contention and no GDScript per-frame allocation.
 	_atmosphere_particles = GPUParticles3D.new()
 	_atmosphere_particles.name = "CityAtmosphere"
-	_atmosphere_particles.amount = ATMOSPHERE_PARTICLE_COUNT
+	_atmosphere_particles.amount = city_profile.atmosphere_particle_count
 	_atmosphere_particles.amount_ratio = 0.35 if reduced_flash else 1.0
 	_atmosphere_particles.lifetime = 7.0
 	_atmosphere_particles.preprocess = 7.0
@@ -578,6 +670,10 @@ func _create_atmospheric_particles(parent: Node3D) -> void:
 
 func _box_transform(size: Vector3, position: Vector3) -> Transform3D:
 	return Transform3D(Basis.IDENTITY.scaled(size), position)
+
+
+func _scaled_rgb(color: Color, multiplier: float) -> Color:
+	return Color(color.r * multiplier, color.g * multiplier, color.b * multiplier, color.a)
 
 
 func _add_box_multimesh(parent: Node3D, node_name: String, transforms: Array[Transform3D], material: Material) -> void:
@@ -654,7 +750,75 @@ func _make_segment(index: int) -> Node3D:
 		_create_perimeter_frame(segment, index)
 	if index % 4 == 2:
 		_create_midground_landmark(segment, index)
+	_register_segment_boxes(segment, index)
 	return segment
+
+
+## The authored course builders below stay deliberately literal: every deck,
+## rail, plate, pylon and accent is described as the box it represents. Once a
+## segment is authored, register boxes sharing a material in course-wide
+## MultiMeshes. The common batch root supplies continuous travel and only the
+## recycled segment's logical offset changes. This retains exact silhouettes,
+## material palette and independent recycling while removing hundreds of tiny
+## background draw calls.
+func _register_segment_boxes(segment: Node3D, segment_index: int) -> void:
+	var originals: Array[MeshInstance3D] = []
+	for child: Node in segment.get_children():
+		var mesh_instance := child as MeshInstance3D
+		if mesh_instance == null:
+			continue
+		var box := mesh_instance.mesh as BoxMesh
+		var material := mesh_instance.material_override
+		if box == null or material == null:
+			continue
+		var key := material.get_instance_id()
+		if not _course_batch_groups.has(key):
+			_course_batch_groups[key] = {"material": material, "local_transforms": [], "segment_indices": []}
+		var group: Dictionary = _course_batch_groups[key]
+		var local_transforms: Array = group["local_transforms"]
+		var segment_indices: Array = group["segment_indices"]
+		local_transforms.append(mesh_instance.transform * Transform3D(Basis.IDENTITY.scaled(box.size), Vector3.ZERO))
+		segment_indices.append(segment_index)
+		group["local_transforms"] = local_transforms
+		group["segment_indices"] = segment_indices
+		_course_batch_groups[key] = group
+		originals.append(mesh_instance)
+	for original: MeshInstance3D in originals:
+		segment.remove_child(original)
+		original.free()
+
+
+func _flush_course_batches() -> void:
+	var batch_index := 0
+	for key: Variant in _course_batch_groups:
+		var group: Dictionary = _course_batch_groups[key]
+		var box := BoxMesh.new()
+		box.size = Vector3.ONE
+		var instances := MultiMesh.new()
+		instances.transform_format = MultiMesh.TRANSFORM_3D
+		instances.mesh = box
+		instances.instance_count = (group["local_transforms"] as Array).size()
+		var node := MultiMeshInstance3D.new()
+		node.name = "CourseBoxBatch%02d" % batch_index
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.multimesh = instances
+		node.material_override = group["material"] as Material
+		_course_batch_root.add_child(node)
+		group["multimesh"] = instances
+		_course_batch_groups[key] = group
+		batch_index += 1
+	_refresh_course_batches()
+
+
+func _refresh_course_batches() -> void:
+	for key: Variant in _course_batch_groups:
+		var group: Dictionary = _course_batch_groups[key]
+		var instances := group["multimesh"] as MultiMesh
+		var local_transforms: Array = group["local_transforms"]
+		var segment_indices: Array = group["segment_indices"]
+		for instance_index in local_transforms.size():
+			var segment_index: int = int(segment_indices[instance_index])
+			instances.set_instance_transform(instance_index, _segments[segment_index].transform * (local_transforms[instance_index] as Transform3D))
 
 
 func _create_road_deck(segment: Node3D, index: int) -> void:

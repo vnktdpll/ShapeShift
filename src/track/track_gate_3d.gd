@@ -116,6 +116,23 @@ func hold_judgment_flash_for_evidence(success: bool) -> void:
 
 
 func _build_static_visuals() -> void:
+	_target_root = get_node_or_null("StandaloneTarget") as Node3D
+	_judgment_light = get_node_or_null("PooledJudgmentLight") as OmniLight3D
+	if _target_root != null and _judgment_light != null:
+		_shape_roots.clear()
+		for authored_name: String in ["Target_Cube", "Target_Pyramid", "Target_Sphere"]:
+			var authored_shape := _target_root.get_node_or_null(authored_name) as Node3D
+			if authored_shape != null:
+				_shape_roots.append(authored_shape)
+		if _shape_roots.size() == 3:
+			return
+		_shape_roots.clear()
+	if _target_root != null:
+		remove_child(_target_root)
+		_target_root.free()
+	if _judgment_light != null:
+		remove_child(_judgment_light)
+		_judgment_light.free()
 	_target_root = Node3D.new()
 	_target_root.name = "StandaloneTarget"
 	_target_root.scale = Vector3.ONE * TARGET_SCALE

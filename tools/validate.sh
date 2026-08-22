@@ -15,7 +15,7 @@ SCAN_LOG="$(mktemp)"
 RUNTIME_LOG="$(mktemp)"
 trap 'rm -f "$SCAN_LOG" "$RUNTIME_LOG"' EXIT
 "$GODOT_BIN" --headless --path "$ROOT" --editor --quit 2>&1 | tee "$SCAN_LOG"
-if rg -q 'ERROR:|SCRIPT ERROR:|Parse Error:' "$SCAN_LOG"; then
+if grep -qE 'ERROR:|SCRIPT ERROR:|Parse Error:' "$SCAN_LOG"; then
   echo "[VALIDATE] parser/import scan reported errors" >&2
   exit 1
 fi
@@ -23,11 +23,15 @@ echo "[VALIDATE] deterministic gameplay checks"
 "$GODOT_BIN" --headless --path "$ROOT" --script res://tests/test_runner.gd
 echo "[VALIDATE] presentation/audio smoke"
 "$GODOT_BIN" --headless --path "$ROOT" --script res://tools/audio_smoke.gd
+echo "[VALIDATE] editor-authored bounded FX smoke"
+"$GODOT_BIN" --headless --path "$ROOT" --script res://tools/fx_authoring_smoke.gd
 echo "[VALIDATE] branded boot transition smoke"
 "$GODOT_BIN" --headless --path "$ROOT" --script res://tools/boot_smoke.gd
+echo "[VALIDATE] centered neon popover smoke"
+"$GODOT_BIN" --headless --path "$ROOT" --script res://tools/popover_smoke.gd
 echo "[VALIDATE] integrated runtime smoke"
 "$GODOT_BIN" --headless --path "$ROOT" --script res://tools/runtime_smoke.gd 2>&1 | tee "$RUNTIME_LOG"
-if rg -q 'ERROR:|SCRIPT ERROR:|Parse Error:' "$RUNTIME_LOG"; then
+if grep -qE 'ERROR:|SCRIPT ERROR:|Parse Error:' "$RUNTIME_LOG"; then
   echo "[VALIDATE] integrated runtime smoke reported errors" >&2
   exit 1
 fi

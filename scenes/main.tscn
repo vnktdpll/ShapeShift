@@ -1,6 +1,27 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://src/core/game_root.gd" id="1_root"]
+[ext_resource type="PackedScene" path="res://scenes/presentation/neon_environment.tscn" id="2_environment"]
+[ext_resource type="PackedScene" path="res://scenes/gameplay/track/track_course.tscn" id="3_track"]
+[ext_resource type="PackedScene" path="res://scenes/gameplay/player/player.tscn" id="4_player"]
+[ext_resource type="PackedScene" path="res://scenes/presentation/arcade_fx_director.tscn" id="5_fx"]
+[ext_resource type="PackedScene" path="res://scenes/presentation/arcade_camera_rig.tscn" id="6_camera"]
+[ext_resource type="PackedScene" path="res://scenes/audio/reactive_audio_engine.tscn" id="7_audio"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="8_hud"]
 
 [node name="ShapeShift" type="Node3D"]
 script = ExtResource("1_root")
+
+[node name="NeonCourseEnvironment" parent="." instance=ExtResource("2_environment")]
+
+[node name="TrackCourse" parent="." instance=ExtResource("3_track")]
+
+[node name="Player" parent="." instance=ExtResource("4_player")]
+
+[node name="ArcadeFxDirector" parent="." instance=ExtResource("5_fx")]
+
+[node name="ArcadeCameraRig" parent="." instance=ExtResource("6_camera")]
+
+[node name="ReactiveAudioEngine" parent="." instance=ExtResource("7_audio")]
+
+[node name="HUD" parent="." instance=ExtResource("8_hud")]

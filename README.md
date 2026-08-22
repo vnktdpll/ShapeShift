@@ -17,8 +17,13 @@ and run the project, or launch directly:
 "/Users/vnktdpl/Downloads/Godot 2.app/Contents/MacOS/Godot" --path .
 ```
 
-Normal launches open on the supplied 4:3 VN Games artwork, preserve its aspect
-ratio on any window shape, and then transition automatically into the game.
+Normal launches use a 960×720 (4:3) viewport, open on the supplied VN Games
+artwork over one uniform blue field, and then transition automatically into the game.
+The original source is preserved, while a flattened 4:3 derivative removes its
+baked radial blue variation. Godot's immediate boot frame and timed splash scene
+use that same derivative, so the logo is visible from the first frame. The engine
+stage has an 800 ms minimum display time, which also keeps the mark visible when
+you run an individual scene from the editor instead of the whole project.
 Automated test, benchmark, and evidence flags skip the timed hold so validation
 remains deterministic.
 
@@ -37,11 +42,11 @@ Godot 4.7.1. Any compatible stable Godot 4.7 executable can be substituted.
 | Instant restart | R | Right shoulder / R1 |
 | Mute | M | Settings menu also available |
 
-The left analog stick also changes lanes. During play, touch devices expose
-large icon-only targets for lane movement, triangle, circle, and pause. Triangle
-and circle are hold overrides; releasing the last held form returns the player
-to the neutral square/cube. Targets support simultaneous touches and stay inside
-the gameplay safe area.
+The left analog stick also changes lanes. Lane and form controls are hold
+overrides on keyboard, controller, and touch: releasing the final direction
+returns to the center lane, and releasing the final form returns to the neutral
+cube. The most recently held opposing input wins deterministically. Touch
+targets support simultaneous touches and stay inside the gameplay safe area.
 
 Open **Controls** from the main, pause, or results menu to rebind keyboard and
 controller actions. The capture flow supports cancel, explicit conflict swaps,
@@ -67,7 +72,9 @@ high score persist in `user://shapeshift_profile.json`.
 
 ## Architecture
 
-`GameRoot` composes typed, independent systems at runtime:
+`scenes/main.tscn` instances typed, independent subsystem scenes that can be
+opened and edited directly in Godot. `GameRoot` binds those authored children
+and retains script-created fallbacks for isolated tests:
 
 - `PlayerController`: immediate logical form state, solid cube/pyramid/sphere
   meshes, 108 ms morph, and 156 ms anticipated/eased three-lane motion.
@@ -79,13 +86,19 @@ high score persist in `user://shapeshift_profile.json`.
   recycled close/mid/far city belts with pane windows and articulated towers,
   four bounded street lights, 36 rain/haze particles, bounded FOV/bank/shake,
   and lane-correct pooled interaction bursts.
-- `BootSplash`: aspect-fitted 4:3 VN Games artwork, deterministic test/evidence
+- `BootSplash`: flat-background 4:3 VN Games artwork, deterministic test/evidence
   bypasses, and an automatic transition into the real main scene.
 - `ReactiveAudioEngine`: original real-time percussion, bass, harmony, pulse, and
   lead synthesis plus event SFX on separate compressed Music/SFX buses.
 - `HUDController`: score-only gameplay HUD, icon-only touch controls, menus, audio,
   accessibility, and control-remapping UI.
 - `InputBindingStore`: persistent device-neutral bindings with safe recovery.
+
+The editable scene roots live under `scenes/gameplay/`, `scenes/presentation/`,
+`scenes/audio/`, and `scenes/ui/`. In particular, the player scene exposes the
+three form meshes and hitbox as named primitives, the course exports its reusable
+target-gate `PackedScene`, and the camera, FX groups, and procedural audio players
+are visible in their own scene trees.
 
 The original project is preserved under `legacy/original/` and excluded from the
 Godot resource scanner by `legacy/.gdignore`. See `legacy/README.md` for the

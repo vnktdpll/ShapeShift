@@ -60,28 +60,42 @@ func _build_runtime() -> void:
 	input_bindings.restore(profile)
 	score_system = ScoreSystem.new()
 
-	environment = NeonCourseEnvironment.new()
-	environment.name = "NeonCourseEnvironment"
-	add_child(environment)
-	track = TrackCourse.new()
-	track.name = "TrackCourse"
-	add_child(track)
-	player = PlayerController.new()
-	player.name = "Player"
-	add_child(player)
-	fx = ArcadeFxDirector.new()
-	fx.name = "ArcadeFxDirector"
-	add_child(fx)
-	camera_rig = ArcadeCameraRig.new()
-	camera_rig.name = "ArcadeCameraRig"
+	environment = get_node_or_null("NeonCourseEnvironment") as NeonCourseEnvironment
+	if environment == null:
+		environment = NeonCourseEnvironment.new()
+		environment.name = "NeonCourseEnvironment"
+		add_child(environment)
+	track = get_node_or_null("TrackCourse") as TrackCourse
+	if track == null:
+		track = TrackCourse.new()
+		track.name = "TrackCourse"
+		add_child(track)
+	player = get_node_or_null("Player") as PlayerController
+	if player == null:
+		player = PlayerController.new()
+		player.name = "Player"
+		add_child(player)
+	fx = get_node_or_null("ArcadeFxDirector") as ArcadeFxDirector
+	if fx == null:
+		fx = ArcadeFxDirector.new()
+		fx.name = "ArcadeFxDirector"
+		add_child(fx)
+	camera_rig = get_node_or_null("ArcadeCameraRig") as ArcadeCameraRig
+	if camera_rig == null:
+		camera_rig = ArcadeCameraRig.new()
+		camera_rig.name = "ArcadeCameraRig"
+		add_child(camera_rig)
 	camera_rig.target = player
-	add_child(camera_rig)
-	audio_engine = ReactiveAudioEngine.new()
-	audio_engine.name = "ReactiveAudioEngine"
-	add_child(audio_engine)
-	hud = HUDController.new()
-	hud.name = "HUD"
-	add_child(hud)
+	audio_engine = get_node_or_null("ReactiveAudioEngine") as ReactiveAudioEngine
+	if audio_engine == null:
+		audio_engine = ReactiveAudioEngine.new()
+		audio_engine.name = "ReactiveAudioEngine"
+		add_child(audio_engine)
+	hud = get_node_or_null("HUD") as HUDController
+	if hud == null:
+		hud = HUDController.new()
+		hud.name = "HUD"
+		add_child(hud)
 	hud.setup(profile, input_bindings)
 
 	fx.set_emission_anchor(player)
@@ -98,6 +112,7 @@ func _build_runtime() -> void:
 	hud.pause_requested.connect(_set_paused)
 	hud.settings_changed.connect(_apply_settings)
 	hud.gameplay_action_requested.connect(_on_gameplay_action_requested)
+	hud.gameplay_action_changed.connect(_on_gameplay_action_changed)
 	player.set_active(false)
 
 func _input(event: InputEvent) -> void:
@@ -142,6 +157,14 @@ func _on_gameplay_action_requested(action: StringName) -> void:
 		&"shape_cube": player.set_shape(GameEvents.ShapeKind.CUBE)
 		&"shape_pyramid": player.set_shape(GameEvents.ShapeKind.PYRAMID)
 		&"shape_sphere": player.set_shape(GameEvents.ShapeKind.SPHERE)
+
+
+func _on_gameplay_action_changed(action: StringName, pressed: bool) -> void:
+	if pressed and state == GameEvents.RunState.READY:
+		start_run(false)
+	if state not in [GameEvents.RunState.TUTORIAL, GameEvents.RunState.RUNNING]:
+		return
+	player.set_input_action_pressed(action, pressed)
 
 func _is_gameplay_input(event: InputEvent) -> bool:
 	for action: StringName in [&"move_left", &"move_right", &"shape_cube", &"shape_pyramid", &"shape_sphere"]:
@@ -417,6 +440,9 @@ func _write_performance_evidence() -> void:
 		"p95_target_ms": 16.7,
 		"passed": p95 <= 16.7,
 		"active_gate_nodes": track.get_child_count(),
+		"render_objects": int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
+		"render_primitives": int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
+		"render_draw_calls": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
 		"quality": profile.quality,
 		"speed_mode": "forced_maximum" if _force_max_speed else "adaptive",
 		"resolution": "%dx%d" % [get_viewport().get_visible_rect().size.x, get_viewport().get_visible_rect().size.y],

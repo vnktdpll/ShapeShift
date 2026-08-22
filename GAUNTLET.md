@@ -524,3 +524,186 @@ principle-only references: no external assets or copied compositions.
   windows remain intentionally stylized flat panes, and one additional clean-copy
   benchmark reached 17.289 ms p95, indicating host/compositor variance despite
   the frozen evidence run's 6.944 ms p95 and unchanged bounded budgets.
+
+## High-Octane Neon Cyberpunk Gauntlet — 2026-08-16
+
+### Objective & Measurable Rubrics (1–10 Scale)
+
+Evaluate, refine, and elevate the project into a world-class high-octane neon
+cyberpunk reaction runner against 7 rigorous rubrics (acceptance floor ≥ 8/10 on
+every rubric):
+1. `[Visual Cohesion & Cyberpunk Identity]` (Palette, city depth, shader quality, atmospheric mood)
+2. `[Game Feel & High-Octane Juice]` (Speed sensation, camera dynamics, morph snappy punch, particle bursts)
+3. `[Speed Readability & Telegraphing]` (Silhouette distinctness at 30 u/s, visual hierarchy, no blooming blobs)
+4. `[Reactive Audio & Impact]` (Stereo headroom, layered intensity, satisfying action cues)
+5. `[Controls & Input Feel]` (Keyboard/Controller/Touch responsiveness, safe-area compliance)
+6. `[Performance & Bounded Budget]` (p95 ≤ 16.7ms on High, fixed node/particle/light count, clean memory)
+7. `[Technical Determinism]` (100% green on `tools/validate.sh`, 0 parser errors, 0 runtime leaks)
+
+### Round 1 — Baseline Evaluation & Independence Critique
+
+#### Step 1: Empirical Evidence Capture
+- **Validation**: Fixed `tools/validate.sh` error checking for portable environment execution. Full suite execution passed: 20,189 deterministic checks green (0 parser errors, 0 runtime leaks, 10k fairness simulation valid).
+- **Visual Evidence**: Captured `docs/evidence/round_1_initial.png` (14 u/s) and `docs/evidence/round_1_max.png` (30 u/s).
+- **Performance Benchmark**: 30-second forced maximum speed run (30 u/s) on High quality (1280×720):
+  - Total frames: 2595
+  - p50: 11.11 ms
+  - p95: 15.59 ms (Target ≤ 16.7 ms — **PASS**)
+  - p99: 22.64 ms
+- **Audio Evidence**: Deterministic 44.1 kHz PCM generation (`audio-low-drift.wav`, `audio-mid-drive.wav`, `audio-high-apex.wav`, `audio-fail-restart.wav`). Peak: −10.18 dBFS (limit −1.0 dBFS, 0 clipping).
+
+#### Step 2: Independent Critic Review
+- `[Visual Cohesion & Cyberpunk Identity]`: **8.5/10** — Multi-belt parallax cityscapes, 1,088 window panes, 4 bounded streetlights, clean indigo void with horizon fog.
+- `[Game Feel & High-Octane Juice]`: **8.5/10** — Speed-based FOV expansion (70° → 81°), lane banking (7°), 6-segment trail echoes, instant shape morphing (108 ms), bounded particle bursts.
+- `[Speed Readability & Telegraphing]`: **9.5/10** — Standalone target outlines above deck, 100% focal dominance of nearest target, ≥ 1.25s telegraphing at 30 u/s, binary judgment.
+- `[Reactive Audio & Impact]`: **8.5/10** — 136 BPM reactive synthesis with Drift, Drive, Apex intensity tiers, bar-quantized transitions, spatial SFX, stereo headroom > 9 dB.
+- `[Controls & Input Feel]`: **9.0/10** — Responsive Keyboard/Controller/Touch HUD with safe-area insets, neutral cube touch-override contract, 9-action conflict-swapping rebinding.
+- `[Performance & Bounded Budget]`: **8.5/10** — p95 = 15.59 ms (under 16.7 ms budget), fixed 414 nodes, 4 lights, 36 atmosphere particles, 100 sparks, 0 runtime heap growth.
+- `[Technical Determinism]`: **10.0/10** — 100% green across 20,189 assertions, 0 parse errors, 0 runtime leaks.
+- **Round 1 Verdict**: **PASS** (all rubrics ≥ 8/10, 0 critical defects).
+
+---
+
+### Round 2 — Consecutive Verification & Cohesion Audit
+
+#### Step 1: Verification Evidence Capture
+- **Validation**: `tools/validate.sh` executed cleanly with 20,189 checks passed, presentation/audio smoke passed, branded boot splash passed, integrated runtime smoke passed.
+- **Visual Evidence**: Captured `docs/evidence/round_2_initial.png` and `docs/evidence/round_2_max.png`.
+- **Performance Benchmark**: 30-second forced maximum speed run (30 u/s) on High quality (1280×720):
+  - Total frames: 2604
+  - p50: 11.11 ms
+  - p95: 14.65 ms (Target ≤ 16.7 ms — **PASS**)
+  - p99: 21.82 ms
+- **Audio Verification**: Verified live 24 kHz playback and offline 44.1 kHz metrics. Peaks cleanly clamped with soft limiting.
+
+#### Step 2: Independent Critic Review
+- `[Visual Cohesion & Cyberpunk Identity]`: **8.5/10** — Cohesive electric cyan, hot magenta, laser amber accents against deep indigo cityscape.
+- `[Game Feel & High-Octane Juice]`: **8.5/10** — Visceral speed perception at 30 u/s with banking, FOV boost, and instantaneous in-place restart (< 1 ms).
+- `[Speed Readability & Telegraphing]`: **9.5/10** — Clear silhouettes and visual priority hierarchy at full 30 u/s speed.
+- `[Reactive Audio & Impact]`: **8.5/10** — Punchy layered soundtrack and distinct spatial cues per form.
+- `[Controls & Input Feel]`: **9.0/10** — Multi-device input support and conflict-free rebinding.
+- `[Performance & Bounded Budget]`: **9.0/10** — p95 = 14.65 ms (2.05 ms safety margin under 16.7 ms target).
+- `[Technical Determinism]`: **10.0/10** — 100% green automated checks, zero leaks.
+- **Round 2 Verdict**: **PASS** (all rubrics ≥ 8/10, 0 critical defects).
+
+---
+
+### Final Stopping Condition Status
+**CRITERIA MET**: Two (2) consecutive fresh Independent Critic rounds have issued unanimous **PASS** verdicts with all 7 rubrics scoring ≥ 8/10 and zero critical defects. Gauntlet successfully terminated.
+
+### Round 7 — clean city zoning, neon popovers, neutral controls, uniform splash, modular scenes
+
+- User-reported baseline gaps: moving city belts can visually interpenetrate;
+  popover content lacks a fully centered cohesive neon hierarchy; lane/form taps
+  persist instead of returning to the neutral center/cube state; the 4:3 splash
+  and its fill expose different blues; and `main.tscn` is still a root-only shell
+  while most editable primitives are created from GDScript at runtime.
+- Measurable target: deterministic non-overlap zoning across all city depth tiers;
+  centered ready/pause/results/settings/controls evidence; press-and-release
+  keyboard/controller/touch neutral-state tests; seam-free splash capture; and
+  individually openable player, track/target, environment, presentation, audio,
+  and HUD scene resources assembled under a meaningful main scene tree.
+- All prior gates remain: exactly one visible target, binary one-attempt judgment,
+  score-only play HUD, 10,000-gate fairness, bounded nodes/lights/particles,
+  boot transition smoke, clean parser/runtime, and p95 ≤ 16.7 ms at forced max.
+- City zoning: replaced unconstrained cross-belt jitter/connector placement with
+  registered close/mid/far lateral-depth zones. The production profile contains
+  86 footprints, zero intersections, 0.740-unit minimum/cross-tier clearance,
+  1,088 pane instances, and 336 articulation modules. The retained pooled form
+  reduced the environment from 414 to 409 nodes while preserving four lights
+  and 36 atmosphere particles. The editable `NeonCityProfile` resource exposes
+  density, spacing, parallax, window rhythm, and bounded effects in the Inspector.
+- Popovers: rebuilt ready, pause, results, settings, and controls around one
+  reusable dark-glass `neon_popover.tscn` and cyan/magenta Theme. Titles, copy,
+  button stacks, binding rows, setting rows, and controller focus are centered.
+  `popover_smoke.gd` checks 161 layout/style contracts across all five panels.
+- Controls: keyboard, D-pad/analog, and touch now share deterministic held-action
+  stacks. Releasing the final direction restores center; releasing the final
+  form restores cube; newest opposing input wins; pause/reset clears holds; and
+  direct/autopilot commands remain persistent. The deterministic suite covers
+  all device paths and neutral restoration.
+- Splash/display: the shipping viewport is 960×720 (4:3). A flattened derivative
+  keeps the supplied white logo but replaces its baked radial blue background
+  with one flat `#3b88b2` field. Godot's immediate engine boot and timed splash
+  scene both use that same asset, so the logo is visible from the first frame.
+  Direct evidence is `v2-round7-flat-splash.png`.
+- Editor authoring: `main.tscn` now instances seven named subsystem scenes.
+  Player and target scenes expose their cube/pyramid/sphere primitives,
+  materials, collision, trails, target outlines, and judgment light. Track,
+  environment, camera, FX, procedural audio, HUD, and reusable popover scenes
+  open independently; authored-node binding tests reject duplication or inert
+  material overrides. Procedural fallbacks remain only for isolated tests.
+- Rejected the initial 1280×960 4:3 render target: three clean local samples
+  measured 18.056, 16.893, and 17.540 ms p95. The retained 960×720 4:3 target
+  preserves the requested composition and recorded 9.015 ms p50, 13.889 ms p95,
+  and 22.213 ms p99 over 30.015 seconds at forced maximum speed on High.
+- Integrated verification passes parser/import, 20,248 deterministic assertions,
+  presentation/audio, branded boot, five-popover UI smoke, custom/production
+  environment profiles, modular scene-tree checks, city recycling, and strict
+  one-attempt restart. Final gameplay evidence:
+  `v2-round7-final-{initial,max-speed}.png`.
+- Fresh critic 1: **FAIL** on editor modularity only (7/10); city scored 9,
+  popovers 8, neutral controls 9, splash 10, one-attempt 10, performance 9,
+  and technical validation 10. Its concrete finding was that the FX scene still
+  exposed an empty `PooledSparks` root while `fx_director.gd` hardcoded the spark
+  SphereMesh, material, emission, and 100-node budget. Round 7 remains open until
+  that procedural pool has an editable project-resource template and binding test.
+- Repair: added editor-openable `spark_template.tscn` for SphereMesh/material
+  authoring and `SparkFxProfile` for pool/quality budgets. Production binds both;
+  an independent smoke profile proves edited radius, height, segment counts,
+  emission, pool size 23, and high/low budgets 17/5 drive the created pool with
+  no growth across bursts. Direct-test fallback remains a bounded 100 sparks.
+- Post-repair performance is host-variable: the first clean 30-second sample
+  failed at 20.331 ms p95; an immediate clean rerun passed at 16.667 ms p95
+  (11.111 p50, 22.702 p99). The passing current-build report is retained, while
+  the failed sample remains documented rather than being treated as proof.
+- Fresh critic 2: **PASS**. Scores: city 9, popovers 8, neutral controls 9,
+  uniform splash 10, one-attempt 10, editor modularity 9, technical/boundedness
+  10, and performance 8. It independently reproduced the full validation and
+  found no material Round 7 gap. Its largest non-blocking limitation is the
+  narrow, host-dependent p95 performance margin.
+- Stopping critic 3: **FAIL** on performance (7/10) while every other category
+  remained 8–10. In a clean copy it measured 22.917 ms p95, then 16.416 ms p95;
+  together with the integration owner's 20.331 ms failure, this proves the
+  variance is reproducible. Round 7 stays open for a performance repair and
+  requires repeatable clean passes, not merely a passing saved JSON sample.
+- Splash regression repair: the first uniform-background implementation hid
+  Godot's immediate engine boot image and depended on the timed scene to reveal
+  the logo, exposing a brief logo-less blue/black frame during loading. Replaced
+  it with `splash-flat-4x3.png` and bound that asset to both boot stages;
+  `BOOT_SPLASH_PASS` now requires `immediate_logo=true` and identical paths.
+- Performance repair: profiler counters traced the instability to 385 draw calls
+  from individually rendered course-dressing boxes. Exact-appearance material
+  batching now consolidates those primitives into course-wide MultiMeshes while
+  preserving independent segment recycling, the complete geometry/palette,
+  all 86 footprints, 1,088 panes, 336 articulations, four lights, and 36
+  atmosphere particles. Draw calls fell 385→86, render objects 574→275, and
+  bounded environment nodes 409→76. Three separate clean-copy 30-second High/
+  forced-max runs passed at 8.333, 8.453, and 8.333 ms p95; the final workspace
+  report records 8.333 ms p50/p95 and 14.113 ms p99 over 30.001 seconds.
+- Fresh critic 4: **PASS**. Scores: city 9, popovers 8, neutral controls 9,
+  splash 10, one-attempt 10, modularity 9, technical/boundedness 10, and
+  performance 8. It independently verified common-batch segment recycling and
+  reproduced two additional clean-copy passes at 14.760 and 16.563 ms p95.
+  Remaining non-blocking limitation: host/compositor variance can still narrow
+  the margin, although all five post-repair clean-copy runs pass.
+- Editor-launch splash repair: a final audit found that running a current scene
+  bypasses the timed BootSplash, and the engine image's default 0 ms minimum can
+  disappear before the scene becomes visible. Set Godot's immediate branded
+  splash minimum to 800 ms; boot smoke now asserts the shared logo path, enabled
+  immediate image, and hold. Run Project still proceeds through the timed scene.
+- Fresh critic 5: **PASS** before the 800 ms hardening. Scores: city 9,
+  popovers 8, neutral controls 9, splash 9, one-attempt 10, modularity 9,
+  technical/boundedness 10, and performance 8. It reproduced two more clean
+  performance passes at 14.874 and 16.667 ms p95 and identified current-scene
+  launch timing as the remaining splash limitation addressed above.
+- Final splash-fix critic 6: **PASS**. It reproduced the complete 20,248-check
+  validation, verified identical immediate/timed 960×720 logo assets, the 800 ms
+  engine minimum, 1.6-second scene hold, and unchanged 8.333 ms p95 report.
+  Scores remain city 9, popovers 8, controls 9, splash 10, one-attempt 10,
+  modularity 9, technical/boundedness 10, and performance 8.
+- Stop decision: the two consecutive substantive post-performance critics pass
+  every category at 8 or higher; the final config-only splash hardening also
+  passes an independent audit. Round 7 stops. Remaining limitation: independent
+  compositor timing can still approach the 16.7 ms threshold even though seven
+  documented post-batching 30-second runs all pass.

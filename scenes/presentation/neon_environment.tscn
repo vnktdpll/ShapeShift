@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/presentation/neon_course_environment.gd" id="1_environment"]
+[ext_resource type="Resource" path="res://assets/environment/neon_city_profile.tres" id="2_profile"]
+
+[node name="NeonEnvironment" type="Node3D"]
+script = ExtResource("1_environment")
+city_profile = ExtResource("2_profile")
+

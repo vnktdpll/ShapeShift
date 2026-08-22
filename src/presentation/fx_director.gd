@@ -9,6 +9,9 @@ enum Quality { LOW, MEDIUM, HIGH }
 @export var quality: Quality = Quality.HIGH
 @export var reduced_flash: bool = false
 @export var emission_anchor: Node3D
+@export_group("Spark authoring")
+@export var spark_template: PackedScene
+@export var spark_profile: SparkFxProfile
 
 var _events: GameEvents
 var _active: Array[Dictionary] = []
@@ -16,7 +19,8 @@ var _free_sparks: Array[MeshInstance3D] = []
 var _flash: ColorRect
 var _rng := RandomNumberGenerator.new()
 var _last_burst_origin_local := Vector3.ZERO
-const SPARK_POOL_SIZE := 100
+var _pool_capacity: int = 0
+const FALLBACK_POOL_SIZE := 100
 
 
 func _ready() -> void:
@@ -46,7 +50,30 @@ func active_particle_count() -> int:
 
 
 func particle_capacity() -> int:
-	return SPARK_POOL_SIZE
+	return _pool_capacity
+
+
+func quality_particle_budget() -> int:
+	if spark_profile == null:
+		return 32 if quality == Quality.LOW else (64 if quality == Quality.MEDIUM else FALLBACK_POOL_SIZE)
+	return spark_profile.capacity_for_quality(quality)
+
+
+## Authoring probes keep resource-to-pool behavior deterministic and testable
+## without making the pool implementation itself part of the public API.
+func spark_mesh_dimensions() -> Vector2:
+	var mesh := _pooled_sphere_mesh()
+	return Vector2(mesh.radius, mesh.height) if mesh != null else Vector2.ZERO
+
+
+func spark_mesh_segments() -> Vector2i:
+	var mesh := _pooled_sphere_mesh()
+	return Vector2i(mesh.radial_segments, mesh.rings) if mesh != null else Vector2i.ZERO
+
+
+func spark_emission_energy() -> float:
+	var material := _pooled_spark_material()
+	return material.emission_energy_multiplier if material != null else 0.0
 
 
 func emit_lane_trail(at: Vector3, direction: float) -> void:
@@ -107,7 +134,8 @@ func _spawn_burst(at: Vector3, color: Color, count: int, life: float, direction:
 		# and markedly less dense than the default high-energy burst.
 		count = mini(count, 6)
 		life *= 0.72
-	var limit := 32 if quality == Quality.LOW else (64 if quality == Quality.MEDIUM else 100)
+	var limit := quality_particle_budget()
+	count = mini(count, limit)
 	while _active.size() + count > limit:
 		var old: Dictionary = _active.pop_front()
 		_retire_spark(old["mesh"] as MeshInstance3D)
@@ -127,20 +155,61 @@ func _spawn_burst(at: Vector3, color: Color, count: int, life: float, direction:
 
 
 func _create_spark_pool() -> void:
-	var shared_mesh := SphereMesh.new()
-	shared_mesh.radius = 0.068
-	shared_mesh.height = 0.14
-	shared_mesh.radial_segments = 8
-	shared_mesh.rings = 4
-	for index: int in range(SPARK_POOL_SIZE):
-		var spark := MeshInstance3D.new()
+	var pool_root := get_node_or_null("PooledSparks") as Node3D
+	if pool_root == null:
+		pool_root = Node3D.new()
+		pool_root.name = "PooledSparks"
+		add_child(pool_root)
+	_pool_capacity = maxi(1, spark_profile.pool_size) if spark_profile != null else FALLBACK_POOL_SIZE
+	for index: int in range(_pool_capacity):
+		var spark := _instantiate_spark()
 		spark.name = "PooledSpark%03d" % index
-		spark.mesh = shared_mesh
 		spark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		spark.material_override = _spark_material(Color.WHITE)
 		spark.visible = false
-		add_child(spark)
+		pool_root.add_child(spark)
 		_free_sparks.append(spark)
+
+
+func _instantiate_spark() -> MeshInstance3D:
+	var spark: MeshInstance3D
+	if spark_template != null:
+		spark = spark_template.instantiate() as MeshInstance3D
+	if spark == null:
+		spark = MeshInstance3D.new()
+		var mesh := SphereMesh.new()
+		mesh.radius = 0.068
+		mesh.height = 0.14
+		mesh.radial_segments = 8
+		mesh.rings = 4
+		spark.mesh = mesh
+		spark.material_override = _spark_material(Color.WHITE)
+	else:
+		# Burst colors are per particle. Duplicate only the authored material;
+		# every pooled instance safely shares the immutable authored mesh.
+		var authored_material := spark.material_override as StandardMaterial3D
+		if authored_material != null:
+			var instance_material := authored_material.duplicate(true) as StandardMaterial3D
+			# StandardMaterial3D's engine-level duplicate can omit the energy value
+			# in headless builds, so retain this authored field explicitly.
+			instance_material.emission_energy_multiplier = authored_material.emission_energy_multiplier
+			spark.material_override = instance_material
+		else:
+			spark.material_override = _spark_material(Color.WHITE)
+	return spark
+
+
+func _pooled_sphere_mesh() -> SphereMesh:
+	if _free_sparks.is_empty() and _active.is_empty():
+		return null
+	var spark: MeshInstance3D = _free_sparks[0] if not _free_sparks.is_empty() else _active[0]["mesh"] as MeshInstance3D
+	return spark.mesh as SphereMesh
+
+
+func _pooled_spark_material() -> StandardMaterial3D:
+	if _free_sparks.is_empty() and _active.is_empty():
+		return null
+	var spark: MeshInstance3D = _free_sparks[0] if not _free_sparks.is_empty() else _active[0]["mesh"] as MeshInstance3D
+	return spark.material_override as StandardMaterial3D
 
 
 func _retire_spark(spark: MeshInstance3D) -> void:
@@ -161,14 +230,20 @@ func _spark_material(color: Color) -> StandardMaterial3D:
 
 
 func _create_screen_feedback() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 8
-	add_child(layer)
-	_flash = ColorRect.new()
+	var layer := get_node_or_null("ScreenFeedback") as CanvasLayer
+	if layer == null:
+		layer = CanvasLayer.new()
+		layer.name = "ScreenFeedback"
+		layer.layer = 8
+		add_child(layer)
+	_flash = layer.get_node_or_null("Flash") as ColorRect
+	if _flash == null:
+		_flash = ColorRect.new()
+		_flash.name = "Flash"
+		layer.add_child(_flash)
 	_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_flash.color = Color.TRANSPARENT
-	layer.add_child(_flash)
 
 
 func _flash_screen(color: Color, alpha: float) -> void:

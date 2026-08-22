@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_spark"]
+resource_name = "SparkEmissionMaterial"
+shading_mode = 0
+albedo_color = Color(1, 1, 1, 1)
+emission_enabled = true
+emission = Color(1, 1, 1, 1)
+emission_energy_multiplier = 3.2
+
+[sub_resource type="SphereMesh" id="SphereMesh_spark"]
+resource_name = "SparkSpherePrimitive"
+radius = 0.068
+height = 0.14
+radial_segments = 8
+rings = 4
+
+[node name="SparkTemplate" type="MeshInstance3D"]
+mesh = SubResource("SphereMesh_spark")
+material_override = SubResource("StandardMaterial3D_spark")
+cast_shadow = 0
+visible = false

@@ -5,13 +5,21 @@ signal restart_requested
 signal pause_requested(paused: bool)
 signal settings_changed
 signal gameplay_action_requested(action: StringName)
+signal gameplay_action_changed(action: StringName, pressed: bool)
 
 const SAFE_EDGE := 28.0
 const TOP_EDGE := 22.0
 const REMAP_ACTIONS: Array[StringName] = [&"move_left", &"move_right", &"shape_cube", &"shape_pyramid", &"shape_sphere", &"pause_game", &"restart_run", &"ui_accept", &"ui_cancel"]
 const REMAP_NAMES := {&"move_left": "LANE LEFT", &"move_right": "LANE RIGHT", &"shape_cube": "CUBE", &"shape_pyramid": "PYRAMID", &"shape_sphere": "SPHERE", &"pause_game": "PAUSE", &"restart_run": "RESTART", &"ui_accept": "MENU ACCEPT", &"ui_cancel": "MENU BACK"}
 const TOUCH_FORM_ACTIONS: Array[StringName] = [&"shape_pyramid", &"shape_sphere"]
+const TOUCH_LANE_ACTIONS: Array[StringName] = [&"move_left", &"move_right"]
 const TOUCH_NEUTRAL_FORM: StringName = &"shape_cube"
+const DEFAULT_POPOVER_SCENE := preload("res://scenes/ui/neon_popover.tscn")
+const DEFAULT_POPOVER_THEME := preload("res://assets/ui/neon_popover_theme.tres")
+
+@export_category("Authoring")
+@export var popover_scene: PackedScene = DEFAULT_POPOVER_SCENE
+@export var popover_theme: Theme = DEFAULT_POPOVER_THEME
 
 class TouchTarget extends Control:
 	var action: StringName
@@ -61,6 +69,7 @@ class TouchTarget extends Control:
 var score_label: Label
 var score_card: PanelContainer
 var feedback: ColorRect
+var popover_scrim: ColorRect
 var ready_panel: PanelContainer
 var pause_panel: PanelContainer
 var results_panel: PanelContainer
@@ -80,6 +89,7 @@ var _flash_tween: Tween
 var _controls_return_panel: Control
 var _settings_return_panel: Control
 var _touch_by_action: Dictionary = {}
+var _held_touch_lanes: Array[StringName] = []
 var _held_touch_shapes: Array[StringName] = []
 
 
@@ -126,30 +136,40 @@ func _style(accent := Color(0.15, 0.88, 1.0), alpha := 0.90, radius := 16) -> St
 func _button(caption: String) -> Button:
 	var result := Button.new()
 	result.text = caption
-	result.custom_minimum_size = Vector2(340, 48)
+	result.custom_minimum_size = Vector2(340, 46)
+	result.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	result.focus_mode = Control.FOCUS_ALL
-	result.add_theme_font_size_override("font_size", 16)
-	result.add_theme_stylebox_override("normal", _style(Color(0.16, 0.72, 1.0), 0.90, 10))
-	result.add_theme_stylebox_override("hover", _style(Color(0.40, 1.0, 0.92), 0.96, 10))
-	result.add_theme_stylebox_override("focus", _style(Color(1.0, 0.34, 0.76), 0.98, 10))
+	result.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return result
 
 
-func _center_panel(accent := Color(0.15, 0.88, 1.0), wide := false) -> Array:
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _style(accent, 0.96, 22))
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	var half_width := 325.0 if wide else 245.0
-	panel.offset_left = -half_width
-	panel.offset_right = half_width
-	panel.offset_top = -250
-	panel.offset_bottom = 250
+func _center_panel(title: String, subtitle: String, panel_size: Vector2, title_tint := Color(0.30, 1.0, 0.95)) -> Array:
+	var source := popover_scene if popover_scene != null else DEFAULT_POPOVER_SCENE
+	var panel := source.instantiate() as PanelContainer
+	if popover_theme != null:
+		panel.theme = popover_theme
+	panel.offset_left = -panel_size.x * 0.5
+	panel.offset_right = panel_size.x * 0.5
+	panel.offset_top = -panel_size.y * 0.5
+	panel.offset_bottom = panel_size.y * 0.5
 	add_child(panel)
-	var stack := VBoxContainer.new()
-	stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	stack.add_theme_constant_override("separation", 10)
-	panel.add_child(stack)
-	return [panel, stack]
+	var title_label := panel.get_node("%Title") as Label
+	var subtitle_label := panel.get_node("%Subtitle") as Label
+	var content := panel.get_node("%Content") as VBoxContainer
+	title_label.text = title
+	title_label.add_theme_color_override("font_color", title_tint)
+	subtitle_label.text = subtitle
+	return [panel, content]
+
+
+func _center_row(name_value: String, separation := 12) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = name_value
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	row.add_theme_constant_override("separation", separation)
+	row.set_meta("centered_popover_row", true)
+	return row
 
 
 func _build_play_hud() -> void:
@@ -168,6 +188,13 @@ func _build_play_hud() -> void:
 	feedback.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	feedback.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(feedback)
+
+	popover_scrim = ColorRect.new()
+	popover_scrim.name = "PopoverScrim"
+	popover_scrim.color = Color(0.005, 0.01, 0.055, 0.38)
+	popover_scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	popover_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(popover_scrim)
 
 	_add_touch(&"move_left", 0, Control.PRESET_BOTTOM_LEFT, Vector2(SAFE_EDGE, -SAFE_EDGE - 88))
 	_add_touch(&"move_right", 1, Control.PRESET_BOTTOM_LEFT, Vector2(SAFE_EDGE + 98, -SAFE_EDGE - 88))
@@ -192,17 +219,25 @@ func _add_touch(action: StringName, kind: int, preset: int, position: Vector2, t
 
 
 func _on_touch_activated(action: StringName) -> void:
+	if action in TOUCH_LANE_ACTIONS:
+		_held_touch_lanes.erase(action)
+		_held_touch_lanes.append(action)
 	if action in TOUCH_FORM_ACTIONS:
 		_held_touch_shapes.erase(action)
 		_held_touch_shapes.append(action)
-	gameplay_action_requested.emit(action)
+	if action in TOUCH_LANE_ACTIONS or action in TOUCH_FORM_ACTIONS:
+		gameplay_action_changed.emit(action, true)
+	else:
+		gameplay_action_requested.emit(action)
 
 
 func _on_touch_deactivated(action: StringName) -> void:
-	if action not in TOUCH_FORM_ACTIONS:
-		return
-	_held_touch_shapes.erase(action)
-	gameplay_action_requested.emit(_held_touch_shapes[-1] if not _held_touch_shapes.is_empty() else TOUCH_NEUTRAL_FORM)
+	if action in TOUCH_LANE_ACTIONS:
+		_held_touch_lanes.erase(action)
+		gameplay_action_changed.emit(action, false)
+	elif action in TOUCH_FORM_ACTIONS:
+		_held_touch_shapes.erase(action)
+		gameplay_action_changed.emit(action, false)
 
 
 static func scaled_safe_insets(viewport_size: Vector2, display_size: Vector2i, safe_rect: Rect2i) -> Vector4:
@@ -250,129 +285,146 @@ func _set_offsets(control: Control, left: float, top: float, width: float, heigh
 
 
 func _build_ready() -> void:
-	var pieces := _center_panel()
+	var pieces := _center_panel("SHAPESHIFT", "MATCH THE TARGET", Vector2(500, 400))
 	ready_panel = pieces[0]
+	ready_panel.name = "ReadyPopover"
 	var stack: VBoxContainer = pieces[1]
-	var title := _label("SHAPESHIFT", 48, Color(0.30, 1.0, 0.95))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stack.add_child(title)
-	var subtitle := _label("MATCH THE TARGET", 16, Color(0.7, 0.85, 1.0))
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stack.add_child(subtitle)
 	var start := _button("PLAY")
+	start.name = "PlayButton"
 	start.pressed.connect(func() -> void: gameplay_action_requested.emit(&"shape_cube"))
 	stack.add_child(start)
 	var controls := _button("CONTROLS")
+	controls.name = "ReadyControlsButton"
 	controls.pressed.connect(_open_controls)
 	stack.add_child(controls)
 
 
 func _build_pause() -> void:
-	var pieces := _center_panel()
+	var pieces := _center_panel("PAUSED", "RUN SUSPENDED", Vector2(500, 500))
 	pause_panel = pieces[0]
+	pause_panel.name = "PausePopover"
 	var stack: VBoxContainer = pieces[1]
-	var title := _label("PAUSED", 36, Color(0.30, 1.0, 0.95))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stack.add_child(title)
 	var resume := _button("RESUME")
+	resume.name = "ResumeButton"
 	resume.pressed.connect(func() -> void: pause_requested.emit(false))
 	stack.add_child(resume)
 	var restart := _button("RESTART")
+	restart.name = "PauseRestartButton"
 	restart.pressed.connect(func() -> void: restart_requested.emit())
 	stack.add_child(restart)
 	var controls := _button("CONTROLS")
+	controls.name = "PauseControlsButton"
 	controls.pressed.connect(_open_controls)
 	stack.add_child(controls)
 	var settings := _button("SETTINGS")
+	settings.name = "SettingsButton"
 	settings.pressed.connect(_open_settings)
 	stack.add_child(settings)
 
 
 func _build_results() -> void:
-	var pieces := _center_panel(Color(1.0, 0.27, 0.62))
+	var pieces := _center_panel("RUN OVER", "SIGNAL LOST · TRY AGAIN", Vector2(500, 450), Color(1.0, 0.35, 0.70))
 	results_panel = pieces[0]
+	results_panel.name = "ResultsPopover"
 	var stack: VBoxContainer = pieces[1]
-	var title := _label("RUN OVER", 34, Color(1.0, 0.35, 0.70))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stack.add_child(title)
 	results_score = _label("SCORE 000000", 25)
+	results_score.name = "ResultsScore"
 	results_score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stack.add_child(results_score)
 	results_best = _label("BEST 000000", 16, Color(0.35, 0.9, 1.0))
+	results_best.name = "ResultsBest"
 	results_best.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stack.add_child(results_best)
 	var restart := _button("RESTART")
+	restart.name = "ResultsRestartButton"
 	restart.pressed.connect(func() -> void: restart_requested.emit())
 	stack.add_child(restart)
 	var controls := _button("CONTROLS")
+	controls.name = "ResultsControlsButton"
 	controls.pressed.connect(_open_controls)
 	stack.add_child(controls)
 
 
 func _build_settings() -> void:
-	var pieces := _center_panel(Color(1.0, 0.32, 0.76), true)
+	var pieces := _center_panel("SETTINGS", "TUNE YOUR NEON FEED", Vector2(620, 520), Color(1.0, 0.40, 0.78))
 	settings_panel = pieces[0]
+	settings_panel.name = "SettingsPopover"
 	var stack: VBoxContainer = pieces[1]
-	var title := _label("SETTINGS", 30, Color(1.0, 0.40, 0.78))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stack.add_child(title)
 	for setting: Array in [["MUSIC", "music_volume"], ["EFFECTS", "sfx_volume"]]:
-		var row := HBoxContainer.new()
-		row.add_child(_label(setting[0], 15, Color(0.75, 0.86, 1.0)))
+		var row := _center_row("%sRow" % setting[0].capitalize())
+		var setting_label := _label(setting[0], 15, Color(0.75, 0.86, 1.0))
+		setting_label.custom_minimum_size.x = 110.0
+		setting_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		row.add_child(setting_label)
 		var slider := HSlider.new()
+		slider.name = "%sSlider" % setting[0].capitalize()
+		slider.custom_minimum_size = Vector2(300, 44)
 		slider.min_value = 0.0
 		slider.max_value = 1.0
 		slider.step = 0.01
 		slider.value = profile.get(setting[1])
-		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		slider.focus_mode = Control.FOCUS_ALL
 		slider.value_changed.connect(func(value: float, key: String = setting[1]) -> void: profile.set(key, value))
 		row.add_child(slider)
 		stack.add_child(row)
 	var motion := CheckButton.new()
+	motion.name = "ReducedMotionToggle"
 	motion.text = "REDUCED MOTION"
+	motion.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	motion.custom_minimum_size = Vector2(260, 42)
+	motion.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	motion.focus_mode = Control.FOCUS_ALL
 	motion.button_pressed = profile.reduced_motion
 	motion.toggled.connect(func(value: bool) -> void: profile.reduced_motion = value)
 	stack.add_child(motion)
 	var flash := CheckButton.new()
+	flash.name = "ReducedFlashToggle"
 	flash.text = "REDUCED FLASH"
+	flash.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	flash.custom_minimum_size = Vector2(260, 42)
+	flash.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	flash.focus_mode = Control.FOCUS_ALL
 	flash.button_pressed = profile.reduced_flash
 	flash.toggled.connect(func(value: bool) -> void: profile.reduced_flash = value)
 	stack.add_child(flash)
 	var close := _button("APPLY & CLOSE")
+	close.name = "ApplySettingsButton"
 	close.pressed.connect(_close_settings)
 	stack.add_child(close)
 
 
 func _build_controls() -> void:
-	var pieces := _center_panel(Color(0.36, 1.0, 0.88), true)
+	var pieces := _center_panel("CONTROLS", "INPUT MATRIX", Vector2(680, 690), Color(0.40, 1.0, 0.90))
 	controls_panel = pieces[0]
+	controls_panel.name = "ControlsPopover"
 	var stack: VBoxContainer = pieces[1]
 	# Nine remappable actions need more vertical room than the compact pause menu.
 	# Keep the complete list on-screen at the 720p reference viewport.
-	controls_panel.offset_top = -340.0
-	controls_panel.offset_bottom = 340.0
-	stack.add_theme_constant_override("separation", 4)
-	var title := _label("CONTROLS", 30, Color(0.40, 1.0, 0.90))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stack.add_child(title)
+	stack.add_theme_constant_override("separation", 3)
 	_capture_label = _label("SELECT AN ACTION TO REBIND", 13, Color(0.75, 0.86, 1.0))
+	_capture_label.name = "BindingStatus"
 	_capture_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stack.add_child(_capture_label)
 	for action: StringName in REMAP_ACTIONS:
-		var row := HBoxContainer.new()
+		var row := _center_row("%sBindingRow" % String(action).to_pascal_case(), 10)
 		var action_label := _label(REMAP_NAMES[action], 14, Color(0.76, 0.88, 1.0))
-		action_label.custom_minimum_size.x = 138.0
+		action_label.name = "ActionName"
+		action_label.custom_minimum_size = Vector2(150, 36)
+		action_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		row.add_child(action_label)
 		var bind_button := _button(bindings.readable_binding(action))
-		bind_button.custom_minimum_size = Vector2(250, 38)
+		bind_button.name = "BindingButton"
+		bind_button.custom_minimum_size = Vector2(270, 36)
 		bind_button.pressed.connect(func(selected: StringName = action) -> void: _begin_capture(selected))
 		row.add_child(bind_button)
 		stack.add_child(row)
 		_binding_rows[action] = bind_button
 	var defaults := _button("RESTORE DEFAULTS")
+	defaults.name = "RestoreDefaultsButton"
 	defaults.pressed.connect(func() -> void: bindings.reset_defaults(profile); _refresh_bindings(); _capture_label.text = "DEFAULTS RESTORED")
 	stack.add_child(defaults)
 	var close := _button("BACK")
+	close.name = "ControlsBackButton"
 	close.pressed.connect(_close_controls)
 	stack.add_child(close)
 
@@ -381,6 +433,7 @@ func _open_settings() -> void:
 	_settings_return_panel = _visible_primary_panel()
 	if _settings_return_panel != null:
 		_settings_return_panel.visible = false
+	popover_scrim.visible = true
 	settings_panel.visible = true
 	settings_panel.move_to_front()
 	call_deferred("_focus_first", settings_panel)
@@ -391,6 +444,7 @@ func _open_controls() -> void:
 	_controls_return_panel = _visible_primary_panel()
 	if _controls_return_panel != null:
 		_controls_return_panel.visible = false
+	popover_scrim.visible = true
 	controls_panel.visible = true
 	controls_panel.move_to_front()
 	call_deferred("_focus_first", controls_panel)
@@ -503,6 +557,7 @@ func _refresh_bindings() -> void:
 
 
 func show_ready() -> void:
+	popover_scrim.visible = true
 	ready_panel.visible = true
 	pause_panel.visible = false
 	results_panel.visible = false
@@ -513,6 +568,7 @@ func show_ready() -> void:
 
 
 func show_running() -> void:
+	popover_scrim.visible = false
 	ready_panel.visible = false
 	pause_panel.visible = false
 	results_panel.visible = false
@@ -520,6 +576,7 @@ func show_running() -> void:
 
 
 func show_paused(value: bool) -> void:
+	popover_scrim.visible = value
 	pause_panel.visible = value
 	if value:
 		pause_panel.move_to_front()
@@ -529,6 +586,7 @@ func show_paused(value: bool) -> void:
 
 func show_results(score: int, best: int, is_new_best: bool) -> void:
 	_set_play_visible(false)
+	popover_scrim.visible = true
 	results_score.text = "SCORE %06d" % score
 	results_best.text = ("NEW BEST %06d" if is_new_best else "BEST %06d") % best
 	results_panel.visible = true
@@ -563,8 +621,7 @@ func _set_play_visible(value: bool) -> void:
 
 func _set_touch_visible(value: bool) -> void:
 	if not value:
+		_held_touch_lanes.clear()
 		_held_touch_shapes.clear()
 	for target: Control in _touch_controls:
 		target.visible = value
-	if value:
-		gameplay_action_requested.emit(TOUCH_NEUTRAL_FORM)

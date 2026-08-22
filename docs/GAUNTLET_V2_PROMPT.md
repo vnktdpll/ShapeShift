@@ -122,6 +122,33 @@ user changes.
      composition without distortion, and transition automatically into the game.
      Command-line test/evidence paths must remain deterministic.
 
+7. **Round 7 — spatially clean city, cohesive popovers, neutral controls,
+   uniform splash, and editor-authorable scenes**
+   - Prevent buildings from occupying or visibly interpenetrating the same city
+     footprint. Close, mid, and far belts must use explicit lateral/depth zones,
+     minimum separation rules, and deterministic validation so a distant tower
+     never grows through a nearer one. Preserve dense enclosure, pane windows,
+     all-layer movement, staggered recycling, and the central decision cone.
+   - Redesign every centered popover (ready, pause, results, settings, controls)
+     as one cohesive neon UI system. Center-align titles, copy, controls, rows,
+     and buttons; use consistent cyan/magenta hierarchy, dark glass panels,
+     restrained glow/accent primitives, spacing, and controller focus states.
+   - Neutral input is center lane plus cube. Left/right and pyramid/sphere are
+     hold-to-steer overrides across keyboard, controller, and touch; releasing
+     the last relevant input returns immediately to center/cube. Simultaneous
+     inputs resolve deterministically and automated/autopilot commands remain
+     available without being overwritten by idle physical input.
+   - The branded splash background must render as one uniform blue field without
+     mismatched side bars or visible color seams, while preserving the VN Games
+     lockup, aspect, normal boot hold/fade, and automated bypasses.
+   - Replace the root-only/runtime-only authoring structure with modular Godot
+     scenes and reusable assets. Main must expose meaningful child systems;
+     player, track/target, environment, FX/camera/audio, and HUD/popovers should
+     each be openable as individual `.tscn` scenes. Use typed nodes and primitive
+     mesh/UI resources with stable names, editable exported parameters, and
+     documented ownership. Procedural pooling may remain where it is required for
+     performance, but its authoring templates/profiles must be project resources.
+
 ## Gauntlet protocol
 
 Use a bounded builder -> integration -> fresh critic -> repair loop. Builders
@@ -157,7 +184,7 @@ stall on the same issue, change strategy.
 - No copyrighted or downloaded reference assets enter the repository.
 - Parser/import, deterministic fairness, audio smoke, restart benchmark, and
   existing automated checks pass.
-- High-quality 1280x720 p95 frame time remains at or below 16.7 ms on the local
+- High-quality 960x720 4:3 p95 frame time remains at or below 16.7 ms on the local
   benchmark target.
 - No critical/high defect remains.
 

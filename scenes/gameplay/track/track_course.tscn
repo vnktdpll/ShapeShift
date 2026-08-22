@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/track/track_course.gd" id="1_course"]
+[ext_resource type="PackedScene" path="res://scenes/gameplay/track/target_gate.tscn" id="2_gate"]
+
+[node name="TrackCourse" type="Node3D"]
+script = ExtResource("1_course")
+gate_scene = ExtResource("2_gate")

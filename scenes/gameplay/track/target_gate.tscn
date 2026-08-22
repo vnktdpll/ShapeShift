@@ -1,0 +1,116 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://src/track/track_gate_3d.gd" id="1_gate"]
+
+[sub_resource type="StandardMaterial3D" id="MatCubeTarget"]
+albedo_color = Color(0.031, 0.067, 0.133, 1)
+metallic = 0.3
+roughness = 0.54
+emission_enabled = true
+emission = Color(0.22, 0.91, 1, 1)
+emission_energy_multiplier = 1.55
+
+[sub_resource type="StandardMaterial3D" id="MatPyramidTarget"]
+albedo_color = Color(0.031, 0.067, 0.133, 1)
+metallic = 0.3
+roughness = 0.54
+emission_enabled = true
+emission = Color(0.988, 0.31, 0.776, 1)
+emission_energy_multiplier = 1.55
+
+[sub_resource type="StandardMaterial3D" id="MatSphereTarget"]
+albedo_color = Color(0.031, 0.067, 0.133, 1)
+metallic = 0.3
+roughness = 0.54
+emission_enabled = true
+emission = Color(1, 0.784, 0.341, 1)
+emission_energy_multiplier = 1.55
+
+[sub_resource type="BoxMesh" id="MeshCubeHorizontal"]
+size = Vector3(2.02, 0.2, 0.24)
+
+[sub_resource type="BoxMesh" id="MeshCubeVertical"]
+size = Vector3(0.2, 2.02, 0.24)
+
+[sub_resource type="BoxMesh" id="MeshPyramidBase"]
+size = Vector3(2.1, 0.2, 0.24)
+
+[sub_resource type="BoxMesh" id="MeshPyramidSide"]
+size = Vector3(2.171, 0.2, 0.24)
+
+[sub_resource type="TorusMesh" id="MeshSphereRing"]
+inner_radius = 0.82
+outer_radius = 1.08
+rings = 12
+ring_segments = 32
+
+[node name="TargetGate" type="Node3D"]
+script = ExtResource("1_gate")
+
+[node name="StandaloneTarget" type="Node3D" parent="."]
+scale = Vector3(1.72, 1.72, 1.72)
+
+[node name="Target_Cube" type="Node3D" parent="StandaloneTarget"]
+visible = false
+
+[node name="Top" type="MeshInstance3D" parent="StandaloneTarget/Target_Cube"]
+position = Vector3(0, 0.91, 0)
+cast_shadow = 0
+mesh = SubResource("MeshCubeHorizontal")
+material_override = SubResource("MatCubeTarget")
+
+[node name="Bottom" type="MeshInstance3D" parent="StandaloneTarget/Target_Cube"]
+position = Vector3(0, -0.91, 0)
+cast_shadow = 0
+mesh = SubResource("MeshCubeHorizontal")
+material_override = SubResource("MatCubeTarget")
+
+[node name="Left" type="MeshInstance3D" parent="StandaloneTarget/Target_Cube"]
+position = Vector3(-0.91, 0, 0)
+cast_shadow = 0
+mesh = SubResource("MeshCubeVertical")
+material_override = SubResource("MatCubeTarget")
+
+[node name="Right" type="MeshInstance3D" parent="StandaloneTarget/Target_Cube"]
+position = Vector3(0.91, 0, 0)
+cast_shadow = 0
+mesh = SubResource("MeshCubeVertical")
+material_override = SubResource("MatCubeTarget")
+
+[node name="Target_Pyramid" type="Node3D" parent="StandaloneTarget"]
+visible = false
+
+[node name="Base" type="MeshInstance3D" parent="StandaloneTarget/Target_Pyramid"]
+position = Vector3(0, -0.88, 0)
+cast_shadow = 0
+mesh = SubResource("MeshPyramidBase")
+material_override = SubResource("MatPyramidTarget")
+
+[node name="RightSlope" type="MeshInstance3D" parent="StandaloneTarget/Target_Pyramid"]
+position = Vector3(0.525, 0.07, 0)
+rotation = Vector3(0, 0, 2.075)
+cast_shadow = 0
+mesh = SubResource("MeshPyramidSide")
+material_override = SubResource("MatPyramidTarget")
+
+[node name="LeftSlope" type="MeshInstance3D" parent="StandaloneTarget/Target_Pyramid"]
+position = Vector3(-0.525, 0.07, 0)
+rotation = Vector3(0, 0, -2.075)
+cast_shadow = 0
+mesh = SubResource("MeshPyramidSide")
+material_override = SubResource("MatPyramidTarget")
+
+[node name="Target_Sphere" type="Node3D" parent="StandaloneTarget"]
+visible = false
+
+[node name="SphereRing" type="MeshInstance3D" parent="StandaloneTarget/Target_Sphere"]
+rotation = Vector3(1.5708, 0, 0)
+cast_shadow = 0
+mesh = SubResource("MeshSphereRing")
+material_override = SubResource("MatSphereTarget")
+
+[node name="PooledJudgmentLight" type="OmniLight3D" parent="."]
+visible = false
+light_energy = 0.0
+omni_range = 4.2
+shadow_enabled = false

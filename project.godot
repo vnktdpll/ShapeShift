@@ -13,10 +13,10 @@ config_version=5
 config/name="ShapeShift: Neon Gauntlet"
 run/main_scene="res://scenes/boot_splash.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
-boot_splash/image="res://assets/branding/splash-4x3.png"
-boot_splash/bg_color=Color(0.12, 0.4, 0.58, 1)
-boot_splash/fullsize=false
-boot_splash/use_filter=true
+boot_splash/bg_color=Color(0.231373, 0.533333, 0.698039, 1)
+boot_splash/stretch_mode=0
+boot_splash/image="res://assets/branding/splash-flat-4x3.png"
+boot_splash/minimum_display_time=800
 
 [audio]
 
@@ -24,9 +24,9 @@ default_bus_layout="res://audio/default_bus_layout.tres"
 
 [display]
 
-window/size/viewport_width=1280
+window/size/viewport_width=960
 window/size/viewport_height=720
-window/size/window_width_override=1280
+window/size/window_width_override=960
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 

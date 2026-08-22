@@ -20,6 +20,8 @@ const SHAPE_MORPH_SECONDS := 0.108
 const CUBE_COLOR := Color("41e6ff")
 const PYRAMID_COLOR := Color("ff4bd8")
 const SPHERE_COLOR := Color("ffe36b")
+const LANE_HOLD_ACTIONS: Array[StringName] = [&"move_left", &"move_right"]
+const SHAPE_HOLD_ACTIONS: Array[StringName] = [&"shape_cube", &"shape_pyramid", &"shape_sphere"]
 
 @export_category("Feel")
 @export_range(0.08, 0.18, 0.001, "suffix:s") var lane_settle_seconds := LANE_SETTLE_SECONDS
@@ -46,6 +48,8 @@ var _morph_remaining := 0.0
 var _burst_remaining := 0.0
 var _trail_clock := 0.0
 var _shape_spin := 0.0
+var _held_lane_actions: Array[StringName] = []
+var _held_shape_actions: Array[StringName] = []
 
 
 func _ready() -> void:
@@ -54,23 +58,65 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not input_enabled or state == PlayerState.DISABLED:
-		return
-	if event.is_action_pressed(&"move_left", false):
-		move_left()
+	if process_gameplay_input_event(event):
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"move_right", false):
-		move_right()
-		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"shape_cube", false):
+
+
+## Convert keyboard/controller action edges into temporary steering overrides.
+## This is edge-driven rather than polled every frame, so programmatic calls to
+## move_to_lane()/set_shape() remain persistent when no raw input is active.
+func process_gameplay_input_event(event: InputEvent) -> bool:
+	var handled := false
+	for action: StringName in LANE_HOLD_ACTIONS + SHAPE_HOLD_ACTIONS:
+		if event.is_action_pressed(action, false):
+			handled = set_input_action_pressed(action, true) or handled
+		elif event.is_action_released(action):
+			handled = set_input_action_pressed(action, false) or handled
+	return handled
+
+
+## Shared hold-state model for keyboard, controller, and touch. The newest held
+## override wins; releasing it restores the previous held override, or the
+## neutral center/cube state when the category has no held input.
+func set_input_action_pressed(action: StringName, pressed: bool) -> bool:
+	var held_actions: Array[StringName]
+	if action in LANE_HOLD_ACTIONS:
+		held_actions = _held_lane_actions
+	elif action in SHAPE_HOLD_ACTIONS:
+		held_actions = _held_shape_actions
+	else:
+		return false
+	if pressed:
+		if not input_enabled or state == PlayerState.DISABLED:
+			return false
+		held_actions.erase(action)
+		held_actions.append(action)
+	else:
+		held_actions.erase(action)
+		if not input_enabled or state == PlayerState.DISABLED:
+			return true
+	_apply_held_override(action in LANE_HOLD_ACTIONS)
+	return true
+
+
+func clear_input_overrides(apply_neutral := true) -> void:
+	_held_lane_actions.clear()
+	_held_shape_actions.clear()
+	if apply_neutral and state != PlayerState.DISABLED:
+		move_to_lane(1)
 		set_shape(GameEvents.ShapeKind.CUBE)
-		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"shape_pyramid", false):
-		set_shape(GameEvents.ShapeKind.PYRAMID)
-		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"shape_sphere", false):
-		set_shape(GameEvents.ShapeKind.SPHERE)
-		get_viewport().set_input_as_handled()
+
+
+func _apply_held_override(is_lane: bool) -> void:
+	if is_lane:
+		var action: StringName = _held_lane_actions[-1] if not _held_lane_actions.is_empty() else &""
+		move_to_lane(0 if action == &"move_left" else (2 if action == &"move_right" else 1))
+		return
+	var action: StringName = _held_shape_actions[-1] if not _held_shape_actions.is_empty() else &"shape_cube"
+	match action:
+		&"shape_pyramid": set_shape(GameEvents.ShapeKind.PYRAMID)
+		&"shape_sphere": set_shape(GameEvents.ShapeKind.SPHERE)
+		_: set_shape(GameEvents.ShapeKind.CUBE)
 
 
 func _process(delta: float) -> void:
@@ -133,11 +179,13 @@ func set_active(active: bool) -> void:
 		state = PlayerState.ACTIVE
 		input_enabled = true
 	else:
+		clear_input_overrides(true)
 		state = PlayerState.READY
 		input_enabled = false
 
 
 func set_impacted() -> void:
+	clear_input_overrides(false)
 	state = PlayerState.IMPACTED
 	input_enabled = false
 	_trigger_shift_burst(0.20)
@@ -160,6 +208,8 @@ func play_damage_feedback() -> void:
 
 ## In-place reset for the near-instant fail -> restart loop.
 func reset_player(start_lane := 1, start_shape := GameEvents.ShapeKind.CUBE) -> void:
+	_held_lane_actions.clear()
+	_held_shape_actions.clear()
 	lane = clampi(start_lane, 0, LANE_X.size() - 1)
 	current_shape = clampi(start_shape, GameEvents.ShapeKind.CUBE, GameEvents.ShapeKind.SPHERE)
 	state = PlayerState.READY
@@ -258,6 +308,10 @@ func _animate_shape_shift(previous_shape: int, next_shape: int) -> void:
 
 
 func _build_avatar() -> void:
+	_avatar = get_node_or_null("Avatar") as Node3D
+	if _avatar != null:
+		_bind_authored_avatar()
+		return
 	_avatar = Node3D.new()
 	_avatar.name = "Avatar"
 	_avatar.position = Vector3(LANE_X[lane], 0.0, 0.0)
@@ -269,6 +323,53 @@ func _build_avatar() -> void:
 	_build_shift_rings()
 	_build_trail()
 	_build_hitbox()
+
+
+## Bind the editor-authored primitive tree from scenes/gameplay/player.tscn.
+## Script-only test instances continue to use the construction fallback above.
+func _bind_authored_avatar() -> void:
+	_shape_nodes.clear()
+	_shape_materials.clear()
+	_rings.clear()
+	_ring_materials.clear()
+	_trail_nodes.clear()
+	_trail_materials.clear()
+	var form_names := ["CubeForm", "PyramidForm", "SphereForm"]
+	var form_colors := [CUBE_COLOR, PYRAMID_COLOR, SPHERE_COLOR]
+	for index in form_names.size():
+		var form_root := _avatar.get_node_or_null(form_names[index]) as Node3D
+		if form_root == null or form_root.get_child_count() != 1 or not form_root.get_child(0) is MeshInstance3D:
+			_add_shape_visual([_create_cube_mesh(), _create_pyramid_mesh(), _create_sphere_mesh()][index], form_colors[index], form_names[index])
+			continue
+		var mesh_instance := form_root.get_child(0) as MeshInstance3D
+		mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var material := mesh_instance.material_override as StandardMaterial3D
+		if material == null:
+			material = _make_form_material(form_colors[index], 1.35)
+			mesh_instance.material_override = material
+		_shape_nodes.append(form_root)
+		_shape_materials.append(material)
+	for index in 3:
+		var ring := _avatar.get_node_or_null("ShiftRing%d" % index) as MeshInstance3D
+		if ring != null:
+			ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var material := ring.material_override as StandardMaterial3D
+			if material == null:
+				material = _make_emissive_material(CUBE_COLOR, 3.6)
+				ring.material_override = material
+			material.albedo_color.a = 0.0
+			_rings.append(ring)
+			_ring_materials.append(material)
+	for index in 6:
+		var echo := get_node_or_null("TrailEcho%d" % index) as MeshInstance3D
+		if echo != null:
+			echo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var material := echo.material_override as StandardMaterial3D
+			if material == null:
+				material = _make_emissive_material(CUBE_COLOR, 1.08)
+				echo.material_override = material
+			_trail_nodes.append(echo)
+			_trail_materials.append(material)
 
 
 func _add_shape_visual(mesh: Mesh, tint: Color, visual_name: String) -> void:

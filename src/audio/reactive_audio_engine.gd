@@ -143,21 +143,24 @@ func _process(_delta: float) -> void:
 
 
 func _create_players() -> void:
-	_music_player = _generator_player(&"Music", "ProceduralMusic")
-	_sfx_player = _generator_player(&"SFX", "ProceduralSfx")
+	_music_player = _generator_player(&"Music", "ProceduralMusic", get_node_or_null("ProceduralMusic") as AudioStreamPlayer)
+	_sfx_player = _generator_player(&"SFX", "ProceduralSfx", get_node_or_null("ProceduralSfx") as AudioStreamPlayer)
 	_music_playback = _music_player.get_stream_playback() as AudioStreamGeneratorPlayback
 	_sfx_playback = _sfx_player.get_stream_playback() as AudioStreamGeneratorPlayback
 
 
-func _generator_player(bus: StringName, node_name: String) -> AudioStreamPlayer:
-	var player := AudioStreamPlayer.new()
+func _generator_player(bus: StringName, node_name: String, authored: AudioStreamPlayer = null) -> AudioStreamPlayer:
+	var player := authored if authored != null else AudioStreamPlayer.new()
 	player.name = node_name
 	player.bus = bus
-	var stream := AudioStreamGenerator.new()
+	var stream := player.stream as AudioStreamGenerator
+	if stream == null:
+		stream = AudioStreamGenerator.new()
 	stream.mix_rate = RUNTIME_SAMPLE_RATE
 	stream.buffer_length = 0.16
 	player.stream = stream
-	add_child(player)
+	if player.get_parent() == null:
+		add_child(player)
 	player.play()
 	return player
 

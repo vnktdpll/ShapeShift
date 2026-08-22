@@ -1,0 +1,131 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Theme" path="res://assets/ui/neon_popover_theme.tres" id="1_theme"]
+
+[node name="NeonPopover" type="PanelContainer"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -240.0
+offset_right = 250.0
+offset_bottom = 240.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_theme")
+
+[node name="FrameStack" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="TopAccent" type="HBoxContainer" parent="FrameStack"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="CyanRail" type="ColorRect" parent="FrameStack/TopAccent"]
+custom_minimum_size = Vector2(320, 4)
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0.12, 0.9, 1, 0.94)
+mouse_filter = 2
+
+[node name="MagentaRail" type="ColorRect" parent="FrameStack/TopAccent"]
+custom_minimum_size = Vector2(110, 4)
+layout_mode = 2
+color = Color(1, 0.22, 0.68, 0.96)
+mouse_filter = 2
+
+[node name="InteriorMargin" type="MarginContainer" parent="FrameStack"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 34
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 34
+theme_override_constants/margin_bottom = 12
+
+[node name="Interior" type="VBoxContainer" parent="FrameStack/InteriorMargin"]
+layout_mode = 2
+theme_override_constants/separation = 9
+alignment = 1
+
+[node name="Eyebrow" type="Label" parent="FrameStack/InteriorMargin/Interior"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 0.87, 1, 0.88)
+theme_override_font_sizes/font_size = 11
+text = "NEON RESPONSE SYSTEM"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Title" type="Label" parent="FrameStack/InteriorMargin/Interior"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 1, 0.95, 1)
+theme_override_font_sizes/font_size = 38
+text = "SHAPESHIFT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Divider" type="HBoxContainer" parent="FrameStack/InteriorMargin/Interior"]
+custom_minimum_size = Vector2(0, 3)
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="CyanLine" type="ColorRect" parent="FrameStack/InteriorMargin/Interior/Divider"]
+custom_minimum_size = Vector2(122, 2)
+layout_mode = 2
+color = Color(0.15, 0.88, 1, 0.72)
+mouse_filter = 2
+
+[node name="Pulse" type="ColorRect" parent="FrameStack/InteriorMargin/Interior/Divider"]
+custom_minimum_size = Vector2(24, 3)
+layout_mode = 2
+color = Color(1, 0.3, 0.72, 0.92)
+mouse_filter = 2
+
+[node name="MagentaLine" type="ColorRect" parent="FrameStack/InteriorMargin/Interior/Divider"]
+custom_minimum_size = Vector2(122, 2)
+layout_mode = 2
+color = Color(0.15, 0.88, 1, 0.72)
+mouse_filter = 2
+
+[node name="Subtitle" type="Label" parent="FrameStack/InteriorMargin/Interior"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.82, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "SYSTEM STANDBY"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Content" type="VBoxContainer" parent="FrameStack/InteriorMargin/Interior"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 9
+alignment = 1
+
+[node name="BottomAccent" type="HBoxContainer" parent="FrameStack"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="MagentaRail" type="ColorRect" parent="FrameStack/BottomAccent"]
+custom_minimum_size = Vector2(110, 4)
+layout_mode = 2
+color = Color(1, 0.22, 0.68, 0.96)
+mouse_filter = 2
+
+[node name="CyanRail" type="ColorRect" parent="FrameStack/BottomAccent"]
+custom_minimum_size = Vector2(320, 4)
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0.12, 0.9, 1, 0.94)
+mouse_filter = 2

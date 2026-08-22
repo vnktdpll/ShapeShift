@@ -13,6 +13,7 @@ signal gate_recycled(gate_sequence: int)
 @export var auto_advance: bool = false
 @export var base_speed: float = 14.0
 @export var max_speed: float = 30.0
+@export var gate_scene: PackedScene
 
 const JUDGMENT_Z: float = 0.0
 const EXIT_Z: float = 3.0
@@ -30,12 +31,22 @@ var _last_speed: float = 14.0
 
 
 func _ready() -> void:
+	if not _pool.is_empty() or not _active.is_empty():
+		return
 	for index: int in range(pool_size):
-		var gate := TrackGate3D.new()
+		var gate := _make_gate()
 		gate.name = "RecycledGate%02d" % index
 		gate.visible = false
 		add_child(gate)
 		_pool.append(gate)
+
+
+func _make_gate() -> TrackGate3D:
+	if gate_scene != null:
+		var authored := gate_scene.instantiate() as TrackGate3D
+		if authored != null:
+			return authored
+	return TrackGate3D.new()
 
 
 func _process(delta: float) -> void:
